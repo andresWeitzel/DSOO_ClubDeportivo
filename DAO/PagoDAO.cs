@@ -116,6 +116,29 @@ namespace TP_ClubDeportivo.DAO
             }
         }
 
+        public bool ActualizarUltimoPagoVisitante(int visitanteId, decimal monto, string medioPago)
+        {
+            using var connection = _conexionFactory.ObtenerConexion();
+            connection.Open();
+
+            using var command = new MySqlCommand("sp_actualizar_ultimo_pago_visitante", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_visitante_id", visitanteId);
+            command.Parameters.AddWithValue("@p_monto", monto);
+            command.Parameters.AddWithValue("@p_medio_pago", medioPago);
+
+            try
+            {
+                return command.ExecuteNonQuery() >= 1;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public IEnumerable<Pago> ObtenerPorVisitante(int visitanteId)
         {
             using var connection = _conexionFactory.ObtenerConexion();

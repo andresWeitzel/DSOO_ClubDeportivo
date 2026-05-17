@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Globalization;
 using System.Windows.Forms;
 using TP_ClubDeportivo.DAO;
 using TP_ClubDeportivo.Models;
@@ -7,16 +8,19 @@ namespace TP_ClubDeportivo.Forms
 {
     public class FormVisitantes : Form
     {
+        private readonly SplitContainer split;
         private readonly DataGridView dgvVisitantes;
         private readonly GroupBox grpFormulario;
-        private readonly TextBox txtDni, txtNombre, txtApellido, txtTelefono, txtActividad, txtMonto;
+        private readonly Panel panelModo;
+        private readonly Label lblModo;
+        private readonly TextBox txtDni, txtNombre, txtApellido, txtTelefono, txtActividad;
+        private readonly NumericUpDown numMonto;
         private readonly ComboBox cboMedioPago;
         private readonly Button btnGuardar;
         private readonly Button btnNuevo;
         private readonly Button btnEliminar;
         private readonly Button btnRegistrarPago;
         private readonly Label lblMensaje;
-        private readonly Label lblModo;
 
         private readonly VisitanteDAO _visitanteDao = new();
         private readonly PagoDAO _pagoDao = new();
@@ -28,16 +32,15 @@ namespace TP_ClubDeportivo.Forms
         {
             Text = "Ingreso de Visitantes";
             StartPosition = FormStartPosition.CenterParent;
-            Size = new Size(1000, 600);
-            MinimumSize = new Size(900, 520);
+            Size = new Size(1050, 620);
+            MinimumSize = new Size(980, 560);
             Font = UiTheme.FuenteNormal;
             BackColor = UiTheme.Fondo;
 
-            var split = new SplitContainer
+            split = new SplitContainer
             {
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Vertical,
-                SplitterDistance = 580,
                 BackColor = UiTheme.Fondo
             };
 
@@ -60,7 +63,8 @@ namespace TP_ClubDeportivo.Forms
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
                 BackgroundColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle
+                BorderStyle = BorderStyle.FixedSingle,
+                RowHeadersVisible = false
             };
             dgvVisitantes.SelectionChanged += DgvVisitantes_SelectionChanged;
 
@@ -70,47 +74,99 @@ namespace TP_ClubDeportivo.Forms
 
             grpFormulario = new GroupBox
             {
-                Text = "Nuevo visitante (CU-02)",
+                Text = "Datos del visitante",
                 Dock = DockStyle.Fill,
-                Padding = new Padding(12),
+                Padding = new Padding(12, 16, 12, 12),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold)
+            };
+
+            panelModo = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 52,
+                BackColor = UiTheme.PrimarioClaro,
+                Padding = new Padding(10, 8, 10, 8)
             };
 
             lblModo = new Label
             {
-                Location = new Point(16, 4),
-                Size = new Size(320, 20),
-                ForeColor = UiTheme.Primario,
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-                Text = "Modo: alta de visitante"
+                Dock = DockStyle.Fill,
+                ForeColor = UiTheme.PrimarioOscuro,
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
+                Text = "Alta: complete los datos y registre el ingreso con su pago.",
+                TextAlign = ContentAlignment.MiddleLeft
             };
-            grpFormulario.Controls.Add(lblModo);
+            panelModo.Controls.Add(lblModo);
 
-            txtDni = CrearCampo(grpFormulario, "DNI:", 28);
-            txtNombre = CrearCampo(grpFormulario, "Nombre:", 64);
-            txtApellido = CrearCampo(grpFormulario, "Apellido:", 100);
-            txtTelefono = CrearCampo(grpFormulario, "Teléfono:", 136);
-            txtActividad = CrearCampo(grpFormulario, "Actividad:", 172);
-            txtMonto = CrearCampo(grpFormulario, "Pago diario ($):", 208);
-            txtMonto.Text = "50";
-            UiTheme.AplicarCampo(txtMonto);
+            var panelCampos = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 248,
+                Padding = new Padding(4, 8, 4, 0)
+            };
 
-            grpFormulario.Controls.Add(new Label { Text = "Medio de pago:", Location = new Point(16, 248), AutoSize = true });
+            const int anchoEtiqueta = 115;
+            const int anchoCampo = 230;
+            int y = 0;
+
+            txtDni = AgregarCampo(panelCampos, "DNI:", anchoEtiqueta, anchoCampo, ref y);
+            txtNombre = AgregarCampo(panelCampos, "Nombre:", anchoEtiqueta, anchoCampo, ref y);
+            txtApellido = AgregarCampo(panelCampos, "Apellido:", anchoEtiqueta, anchoCampo, ref y);
+            txtTelefono = AgregarCampo(panelCampos, "Teléfono:", anchoEtiqueta, anchoCampo, ref y);
+            txtActividad = AgregarCampo(panelCampos, "Actividad:", anchoEtiqueta, anchoCampo, ref y);
+
+            panelCampos.Controls.Add(new Label
+            {
+                Text = "Pago diario ($):",
+                Location = new Point(4, y + 4),
+                Size = new Size(anchoEtiqueta, 22),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = UiTheme.FuenteNormal
+            });
+            numMonto = new NumericUpDown
+            {
+                Location = new Point(anchoEtiqueta + 8, y),
+                Size = new Size(anchoCampo, 25),
+                DecimalPlaces = 2,
+                Minimum = 0.01m,
+                Maximum = 999999m,
+                Value = 50m,
+                ThousandsSeparator = true
+            };
+            panelCampos.Controls.Add(numMonto);
+            y += 36;
+
+            panelCampos.Controls.Add(new Label
+            {
+                Text = "Medio de pago:",
+                Location = new Point(4, y + 4),
+                Size = new Size(anchoEtiqueta, 22),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = UiTheme.FuenteNormal
+            });
             cboMedioPago = new ComboBox
             {
-                Location = new Point(130, 244),
-                Size = new Size(200, 25),
-                DropDownStyle = ComboBoxStyle.DropDownList
+                Location = new Point(anchoEtiqueta + 8, y),
+                Size = new Size(anchoCampo, 25),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = UiTheme.FuenteNormal
             };
             cboMedioPago.Items.AddRange(["Efectivo", "Tarjeta Débito", "Tarjeta Crédito", "Transferencia"]);
             cboMedioPago.SelectedIndex = 0;
-            grpFormulario.Controls.Add(cboMedioPago);
+            panelCampos.Controls.Add(cboMedioPago);
+
+            var panelBotones = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 88,
+                Padding = new Padding(4, 12, 4, 0)
+            };
 
             btnGuardar = new Button
             {
                 Text = "Registrar ingreso",
-                Location = new Point(16, 288),
-                Size = new Size(150, 36)
+                Location = new Point(4, 0),
+                Size = new Size(165, 38)
             };
             UiTheme.AplicarBotonPrimario(btnGuardar);
             btnGuardar.Click += BtnGuardar_Click;
@@ -118,8 +174,8 @@ namespace TP_ClubDeportivo.Forms
             btnNuevo = new Button
             {
                 Text = "Nuevo",
-                Location = new Point(176, 288),
-                Size = new Size(80, 36)
+                Location = new Point(178, 0),
+                Size = new Size(90, 38)
             };
             UiTheme.AplicarBotonSecundario(btnNuevo);
             btnNuevo.Click += (_, _) => ModoNuevo();
@@ -127,8 +183,8 @@ namespace TP_ClubDeportivo.Forms
             btnEliminar = new Button
             {
                 Text = "Eliminar",
-                Location = new Point(264, 288),
-                Size = new Size(80, 36),
+                Location = new Point(276, 0),
+                Size = new Size(90, 38),
                 Enabled = false
             };
             UiTheme.AplicarBotonSecundario(btnEliminar);
@@ -136,48 +192,59 @@ namespace TP_ClubDeportivo.Forms
 
             btnRegistrarPago = new Button
             {
-                Text = "Registrar pago",
-                Location = new Point(16, 332),
-                Size = new Size(150, 32),
+                Text = "Registrar pago pendiente",
+                Location = new Point(4, 46),
+                Size = new Size(362, 32),
                 Enabled = false,
                 Visible = false
             };
             UiTheme.AplicarBotonSecundario(btnRegistrarPago);
             btnRegistrarPago.Click += BtnRegistrarPago_Click;
 
+            panelBotones.Controls.AddRange([btnGuardar, btnNuevo, btnEliminar, btnRegistrarPago]);
+
             lblMensaje = new Label
             {
-                Location = new Point(16, 372),
-                Size = new Size(330, 80),
-                ForeColor = UiTheme.TextoSecundario
+                Dock = DockStyle.Fill,
+                ForeColor = UiTheme.TextoSecundario,
+                Padding = new Padding(6, 8, 6, 0),
+                Font = new Font("Segoe UI", 9F)
             };
 
-            grpFormulario.Controls.AddRange([
-                btnGuardar, btnNuevo, btnEliminar, btnRegistrarPago, lblMensaje
-            ]);
+            grpFormulario.Controls.Add(lblMensaje);
+            grpFormulario.Controls.Add(panelBotones);
+            grpFormulario.Controls.Add(panelCampos);
+            grpFormulario.Controls.Add(panelModo);
 
             split.Panel2.Controls.Add(grpFormulario);
             Controls.Add(split);
 
             Load += (_, _) =>
             {
+                UiTheme.ConfigurarSplitVertical(split, 0.58);
                 ModoNuevo();
                 CargarVisitantes();
             };
         }
 
-        private static TextBox CrearCampo(Control parent, string etiqueta, int y)
+        private static TextBox AgregarCampo(Panel panel, string etiqueta, int anchoEtiqueta, int anchoCampo, ref int y)
         {
-            parent.Controls.Add(new Label
+            panel.Controls.Add(new Label
             {
                 Text = etiqueta,
-                Location = new Point(16, y + 4),
-                AutoSize = true,
+                Location = new Point(4, y + 4),
+                Size = new Size(anchoEtiqueta, 22),
+                TextAlign = ContentAlignment.MiddleLeft,
                 Font = UiTheme.FuenteNormal
             });
-            var txt = new TextBox { Location = new Point(130, y), Size = new Size(214, 25) };
+            var txt = new TextBox
+            {
+                Location = new Point(anchoEtiqueta + 8, y),
+                Size = new Size(anchoCampo, 25)
+            };
             UiTheme.AplicarCampo(txt);
-            parent.Controls.Add(txt);
+            panel.Controls.Add(txt);
+            y += 36;
             return txt;
         }
 
@@ -196,8 +263,10 @@ namespace TP_ClubDeportivo.Forms
             _visitanteSeleccionadoId = fila.IdVisitante;
             _tienePagoRegistrado = fila.PagoRegistrado == "Sí";
 
-            grpFormulario.Text = $"Editar visitante #{fila.IdVisitante}";
-            lblModo.Text = "Modo: edición — seleccioná otro registro o «Nuevo» para alta";
+            grpFormulario.Text = $"Editar visitante Nº {fila.IdVisitante}";
+            lblModo.Text = _tienePagoRegistrado
+                ? "Edición: puede modificar datos, monto y medio de pago del último cobro."
+                : "Edición: sin pago registrado. Guarde cambios o use «Registrar pago pendiente».";
             btnGuardar.Text = "Guardar cambios";
             btnEliminar.Enabled = true;
 
@@ -206,21 +275,17 @@ namespace TP_ClubDeportivo.Forms
             txtApellido.Text = fila.Apellido;
             txtTelefono.Text = fila.Telefono;
             txtActividad.Text = fila.Actividad;
-            txtMonto.Text = fila.Monto.ToString("N2");
+            EstablecerMonto(fila.Monto);
 
-            cboMedioPago.Enabled = !_tienePagoRegistrado;
+            cboMedioPago.Enabled = true;
+            SeleccionarMedioPago(fila.MedioPago);
+
             btnRegistrarPago.Visible = !_tienePagoRegistrado;
             btnRegistrarPago.Enabled = !_tienePagoRegistrado;
 
-            if (_tienePagoRegistrado && !string.IsNullOrEmpty(fila.MedioPago))
-            {
-                var idx = cboMedioPago.Items.IndexOf(fila.MedioPago);
-                cboMedioPago.SelectedIndex = idx >= 0 ? idx : 0;
-            }
-
             lblMensaje.Text = _tienePagoRegistrado
-                ? "Pago ya registrado. Podés actualizar datos del visitante."
-                : "Sin pago registrado. Guardá cambios o usá «Registrar pago».";
+                ? "Al guardar se actualizan el visitante y su último pago."
+                : "Registre el pago cuando el visitante abone la entrada.";
         }
 
         private void ModoNuevo()
@@ -230,7 +295,7 @@ namespace TP_ClubDeportivo.Forms
             dgvVisitantes.ClearSelection();
 
             grpFormulario.Text = "Nuevo visitante (CU-02)";
-            lblModo.Text = "Modo: alta de visitante";
+            lblModo.Text = "Alta: complete los datos y registre el ingreso con su pago diario.";
             btnGuardar.Text = "Registrar ingreso";
             btnEliminar.Enabled = false;
             btnRegistrarPago.Visible = false;
@@ -305,6 +370,7 @@ namespace TP_ClubDeportivo.Forms
             if (dgvVisitantes.Columns.Contains("Monto"))
             {
                 dgvVisitantes.Columns["Monto"]!.DefaultCellStyle.Format = "N2";
+                dgvVisitantes.Columns["Monto"]!.DefaultCellStyle.FormatProvider = CultureInfo.CurrentCulture;
             }
         }
 
@@ -334,15 +400,7 @@ namespace TP_ClubDeportivo.Forms
 
         private void CrearVisitante(decimal monto)
         {
-            var visitante = new Visitante
-            {
-                DNI = txtDni.Text.Trim(),
-                Nombre = txtNombre.Text.Trim(),
-                Apellido = txtApellido.Text.Trim(),
-                Telefono = txtTelefono.Text.Trim(),
-                Actividad = txtActividad.Text.Trim(),
-                PagoDiarioMonto = monto
-            };
+            var visitante = ConstruirVisitante(monto);
 
             if (!_visitanteDao.Crear(visitante, out var visitanteId))
             {
@@ -357,7 +415,7 @@ namespace TP_ClubDeportivo.Forms
             }
             else
             {
-                lblMensaje.Text = $"Visitante #{visitanteId} — Pago #{pagoId} por ${monto:N2}.";
+                lblMensaje.Text = $"Visitante #{visitanteId} — Pago #{pagoId} por {FormatearMonto(monto)}.";
                 MessageBox.Show("Ingreso y pago registrados.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
 
@@ -367,25 +425,27 @@ namespace TP_ClubDeportivo.Forms
 
         private void ActualizarVisitante(decimal monto)
         {
-            var visitante = new Visitante
-            {
-                IdVisitante = _visitanteSeleccionadoId!.Value,
-                DNI = txtDni.Text.Trim(),
-                Nombre = txtNombre.Text.Trim(),
-                Apellido = txtApellido.Text.Trim(),
-                Telefono = txtTelefono.Text.Trim(),
-                Actividad = txtActividad.Text.Trim(),
-                PagoDiarioMonto = monto
-            };
+            var visitante = ConstruirVisitante(monto);
+            visitante.IdVisitante = _visitanteSeleccionadoId!.Value;
 
             if (!_visitanteDao.Actualizar(visitante))
             {
-                lblMensaje.Text = "No se pudieron guardar los cambios.";
+                lblMensaje.Text = "No se pudieron guardar los cambios del visitante.";
                 return;
             }
 
-            lblMensaje.Text = $"Visitante #{visitante.IdVisitante} actualizado.";
-            MessageBox.Show("Datos del visitante actualizados.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            if (_tienePagoRegistrado)
+            {
+                if (!_pagoDao.ActualizarUltimoPagoVisitante(visitante.IdVisitante, monto, cboMedioPago.Text))
+                {
+                    lblMensaje.Text = "Visitante actualizado, pero no se pudo actualizar el pago.";
+                    CargarVisitantes();
+                    return;
+                }
+            }
+
+            lblMensaje.Text = $"Visitante #{visitante.IdVisitante} actualizado correctamente.";
+            MessageBox.Show("Cambios guardados.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
             CargarVisitantes();
         }
 
@@ -401,6 +461,15 @@ namespace TP_ClubDeportivo.Forms
                 return;
             }
 
+            var visitante = ConstruirVisitante(monto);
+            visitante.IdVisitante = _visitanteSeleccionadoId.Value;
+
+            if (!_visitanteDao.Actualizar(visitante))
+            {
+                MessageBox.Show("No se pudo actualizar el monto del visitante.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             var concepto = $"Entrada diaria — {txtActividad.Text.Trim()}";
             if (!_pagoDao.RegistrarPagoVisitante(_visitanteSeleccionadoId.Value, monto, cboMedioPago.Text, concepto, out var pagoId))
             {
@@ -408,7 +477,7 @@ namespace TP_ClubDeportivo.Forms
                 return;
             }
 
-            MessageBox.Show($"Pago #{pagoId} registrado por ${monto:N2}.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show($"Pago #{pagoId} registrado por {FormatearMonto(monto)}.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
             CargarVisitantes();
         }
 
@@ -420,17 +489,10 @@ namespace TP_ClubDeportivo.Forms
             }
 
             var textoConfirmacion = _tienePagoRegistrado
-                ? $"¿Eliminar al visitante #{_visitanteSeleccionadoId.Value}?\n\n" +
-                  "Tiene pagos diarios registrados. También se eliminarán esos pagos."
+                ? $"¿Eliminar al visitante #{_visitanteSeleccionadoId.Value}?\n\nTambién se eliminarán sus pagos asociados."
                 : $"¿Eliminar al visitante #{_visitanteSeleccionadoId.Value}?";
 
-            var confirmar = MessageBox.Show(
-                textoConfirmacion,
-                "Confirmar eliminación",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Warning);
-
-            if (confirmar != DialogResult.Yes)
+            if (MessageBox.Show(textoConfirmacion, "Confirmar eliminación", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
             {
                 return;
             }
@@ -450,23 +512,57 @@ namespace TP_ClubDeportivo.Forms
             CargarVisitantes();
         }
 
+        private Visitante ConstruirVisitante(decimal monto)
+        {
+            return new Visitante
+            {
+                DNI = txtDni.Text.Trim(),
+                Nombre = txtNombre.Text.Trim(),
+                Apellido = txtApellido.Text.Trim(),
+                Telefono = txtTelefono.Text.Trim(),
+                Actividad = txtActividad.Text.Trim(),
+                PagoDiarioMonto = monto
+            };
+        }
+
         private bool ValidarCampos(out decimal monto)
         {
-            monto = 0;
+            monto = numMonto.Value;
             if (string.IsNullOrWhiteSpace(txtNombre.Text) || string.IsNullOrWhiteSpace(txtActividad.Text))
             {
                 MessageBox.Show("Complete al menos nombre y actividad.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
 
-            if (!decimal.TryParse(txtMonto.Text.Trim(), out monto) || monto <= 0)
+            if (monto <= 0)
             {
-                MessageBox.Show("Ingrese un monto válido.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Ingrese un monto mayor a cero.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
 
             return true;
         }
+
+        private void EstablecerMonto(decimal monto)
+        {
+            var valor = Math.Clamp(monto, numMonto.Minimum, numMonto.Maximum);
+            numMonto.Value = valor;
+        }
+
+        private void SeleccionarMedioPago(string medio)
+        {
+            if (string.IsNullOrWhiteSpace(medio))
+            {
+                cboMedioPago.SelectedIndex = 0;
+                return;
+            }
+
+            var idx = cboMedioPago.Items.IndexOf(medio);
+            cboMedioPago.SelectedIndex = idx >= 0 ? idx : 0;
+        }
+
+        private static string FormatearMonto(decimal monto) =>
+            monto.ToString("C2", CultureInfo.CurrentCulture);
 
         private void LimpiarCampos()
         {
@@ -475,7 +571,7 @@ namespace TP_ClubDeportivo.Forms
             txtApellido.Clear();
             txtTelefono.Clear();
             txtActividad.Clear();
-            txtMonto.Text = "50";
+            numMonto.Value = 50m;
             cboMedioPago.SelectedIndex = 0;
         }
     }

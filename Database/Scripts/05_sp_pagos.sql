@@ -94,6 +94,40 @@ BEGIN
     VALUES ('VISITANTE', p_visitante_id, p_monto, NOW(), p_medio_pago, p_concepto);
     
     SET p_pago_id = LAST_INSERT_ID();
+
+    UPDATE visitantes
+    SET pago_diario_monto = p_monto
+    WHERE id_visitante = p_visitante_id;
+END$$
+
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS sp_actualizar_ultimo_pago_visitante;
+
+DELIMITER $$
+
+CREATE PROCEDURE sp_actualizar_ultimo_pago_visitante(
+    IN p_visitante_id INT,
+    IN p_monto DECIMAL(10,2),
+    IN p_medio_pago VARCHAR(50)
+)
+BEGIN
+    UPDATE pagos
+    SET monto = p_monto,
+        medio_pago = p_medio_pago
+    WHERE id_pago = (
+        SELECT id_pago FROM (
+            SELECT id_pago
+            FROM pagos
+            WHERE visitante_id = p_visitante_id
+            ORDER BY fecha_pago DESC
+            LIMIT 1
+        ) AS ultimo_pago
+    );
+
+    UPDATE visitantes
+    SET pago_diario_monto = p_monto
+    WHERE id_visitante = p_visitante_id;
 END$$
 
 DELIMITER ;

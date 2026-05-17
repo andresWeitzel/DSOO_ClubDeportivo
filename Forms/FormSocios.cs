@@ -7,6 +7,7 @@ namespace TP_ClubDeportivo.Forms
 {
     public class FormSocios : Form
     {
+        private readonly SplitContainer split;
         private readonly DataGridView dgvSocios;
         private readonly TextBox txtDni, txtNombre, txtApellido, txtTelefono, txtDireccion, txtEmail, txtMontoCuota;
         private readonly Button btnGuardar, btnLimpiar, btnRefrescar, btnBuscarDni;
@@ -26,13 +27,10 @@ namespace TP_ClubDeportivo.Forms
             MinimumSize = new Size(900, 560);
             Font = new Font("Segoe UI", 10F);
 
-            var split = new SplitContainer
+            split = new SplitContainer
             {
                 Dock = DockStyle.Fill,
-                Orientation = Orientation.Vertical,
-                SplitterDistance = 620,
-                Panel1MinSize = 400,
-                Panel2MinSize = 280
+                Orientation = Orientation.Vertical
             };
 
             dgvSocios = new DataGridView
@@ -105,7 +103,11 @@ namespace TP_ClubDeportivo.Forms
 
             Controls.Add(split);
 
-            Load += (_, _) => CargarSocios();
+            Load += (_, _) =>
+            {
+                UiTheme.ConfigurarSplitVertical(split, 0.62);
+                CargarSocios();
+            };
         }
 
         private static TextBox CrearCampo(Control parent, string etiqueta, int y)

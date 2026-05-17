@@ -85,7 +85,16 @@ BEGIN
         v.telefono,
         v.actividad,
         v.fecha_ingreso,
-        v.pago_diario_monto AS monto,
+        COALESCE(
+            (
+                SELECT p.monto
+                FROM pagos p
+                WHERE p.visitante_id = v.id_visitante
+                ORDER BY p.fecha_pago DESC
+                LIMIT 1
+            ),
+            v.pago_diario_monto
+        ) AS monto,
         (
             SELECT p.medio_pago
             FROM pagos p

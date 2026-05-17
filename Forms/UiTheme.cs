@@ -150,6 +150,29 @@ namespace TP_ClubDeportivo.Forms
             return btn;
         }
 
+        public static void ConfigurarSplitVertical(SplitContainer split, double ratioPanel1 = 0.58)
+        {
+            split.Panel1MinSize = 260;
+            split.Panel2MinSize = 260;
+            split.SplitterWidth = 4;
+
+            void Ajustar()
+            {
+                if (split.Width <= 0)
+                {
+                    return;
+                }
+
+                var maximo = split.Width - split.Panel2MinSize - split.SplitterWidth;
+                var minimo = split.Panel1MinSize;
+                var deseado = (int)(split.Width * ratioPanel1);
+                split.SplitterDistance = Math.Clamp(deseado, minimo, Math.Max(minimo, maximo));
+            }
+
+            split.Resize += (_, _) => Ajustar();
+            Ajustar();
+        }
+
         public static void PintarFondoGradiente(Panel panel, PaintEventArgs e)
         {
             using var brush = new LinearGradientBrush(
