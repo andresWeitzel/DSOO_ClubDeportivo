@@ -20,27 +20,42 @@ namespace TP_ClubDeportivo.DAO
             _conexionFactory = conexionFactory;
         }
 
-        public bool Crear(Pago pago)
+        public bool RegistrarPagoSocio(int socioId, int cuotaId, decimal monto, string medioPago, string concepto, out int pagoId)
         {
+            pagoId = 0;
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"INSERT INTO pagos
-                                  (tipo, socio_id, cuota_id, visitante_id, monto, fecha_pago, medio_pago, concepto)
-                                  VALUES
-                                  (@tipo, @socio_id, @cuota_id, @visitante_id, @monto, @fecha_pago, @medio_pago, @concepto)";
+            using var command = new MySqlCommand("sp_registrar_pago_socio", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_socio_id", socioId);
+            command.Parameters.AddWithValue("@p_cuota_id", cuotaId);
+            command.Parameters.AddWithValue("@p_monto", monto);
+            command.Parameters.AddWithValue("@p_medio_pago", medioPago);
+            command.Parameters.AddWithValue("@p_concepto", concepto);
 
-            using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@tipo", pago.Tipo);
-            command.Parameters.AddWithValue("@socio_id", pago.SocioId.HasValue ? pago.SocioId.Value : (object)DBNull.Value);
-            command.Parameters.AddWithValue("@cuota_id", pago.CuotaId.HasValue ? pago.CuotaId.Value : (object)DBNull.Value);
-            command.Parameters.AddWithValue("@visitante_id", pago.VisitanteId.HasValue ? pago.VisitanteId.Value : (object)DBNull.Value);
-            command.Parameters.AddWithValue("@monto", pago.Monto);
-            command.Parameters.AddWithValue("@fecha_pago", pago.FechaPago == default ? DateTime.Now : pago.FechaPago);
-            command.Parameters.AddWithValue("@medio_pago", pago.MedioPago);
-            command.Parameters.AddWithValue("@concepto", pago.Concepto);
+            var outputParam = new MySqlParameter("@p_pago_id", MySqlDbType.Int32)
+            {
+                Direction = ParameterDirection.Output
+            };
+            command.Parameters.Add(outputParam);
 
-            return command.ExecuteNonQuery() == 1;
+            try
+            {
+                command.ExecuteNonQuery();
+                if (int.TryParse(outputParam.Value?.ToString(), out var id))
+                {
+                    pagoId = id;
+                    return true;
+                }
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public IEnumerable<Pago> ObtenerPorSocio(int socioId)
@@ -48,13 +63,11 @@ namespace TP_ClubDeportivo.DAO
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"SELECT id_pago, tipo, socio_id, cuota_id, visitante_id, monto, fecha_pago, medio_pago, concepto
-                                  FROM pagos
-                                  WHERE socio_id = @socio_id
-                                  ORDER BY fecha_pago DESC";
-
-            using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@socio_id", socioId);
+            using var command = new MySqlCommand("sp_obtener_pagos_socio", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_socio_id", socioId);
 
             using var reader = command.ExecuteReader();
             var pagos = new List<Pago>();
@@ -71,13 +84,11 @@ namespace TP_ClubDeportivo.DAO
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"SELECT id_pago, tipo, socio_id, cuota_id, visitante_id, monto, fecha_pago, medio_pago, concepto
-                                  FROM pagos
-                                  WHERE visitante_id = @visitante_id
-                                  ORDER BY fecha_pago DESC";
-
-            using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@visitante_id", visitanteId);
+            using var command = new MySqlCommand("sp_obtener_pagos_visitante", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_visitante_id", visitanteId);
 
             using var reader = command.ExecuteReader();
             var pagos = new List<Pago>();

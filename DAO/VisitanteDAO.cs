@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Data;
 using MySqlConnector;
 using TP_ClubDeportivo.Data;
 using TP_ClubDeportivo.Models;
@@ -19,26 +20,43 @@ namespace TP_ClubDeportivo.DAO
             _conexionFactory = conexionFactory;
         }
 
-        public bool Crear(Visitante visitante)
+        public bool Crear(Visitante visitante, out int visitanteId)
         {
+            visitanteId = 0;
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"INSERT INTO visitantes
-                                  (dni, nombre, apellido, telefono, actividad, fecha_ingreso, pago_diario_monto)
-                                  VALUES
-                                  (@dni, @nombre, @apellido, @telefono, @actividad, @fecha_ingreso, @pago_diario_monto)";
+            using var command = new MySqlCommand("sp_crear_visitante", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_dni", visitante.DNI);
+            command.Parameters.AddWithValue("@p_nombre", visitante.Nombre);
+            command.Parameters.AddWithValue("@p_apellido", visitante.Apellido);
+            command.Parameters.AddWithValue("@p_telefono", visitante.Telefono);
+            command.Parameters.AddWithValue("@p_actividad", visitante.Actividad);
+            command.Parameters.AddWithValue("@p_pago_diario_monto", visitante.PagoDiarioMonto);
 
-            using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@dni", visitante.DNI);
-            command.Parameters.AddWithValue("@nombre", visitante.Nombre);
-            command.Parameters.AddWithValue("@apellido", visitante.Apellido);
-            command.Parameters.AddWithValue("@telefono", visitante.Telefono);
-            command.Parameters.AddWithValue("@actividad", visitante.Actividad);
-            command.Parameters.AddWithValue("@fecha_ingreso", visitante.FechaIngreso == default ? DateTime.Now : visitante.FechaIngreso);
-            command.Parameters.AddWithValue("@pago_diario_monto", visitante.PagoDiarioMonto);
+            var outputParam = new MySqlParameter("@p_visitante_id", MySqlDbType.Int32)
+            {
+                Direction = ParameterDirection.Output
+            };
+            command.Parameters.Add(outputParam);
 
-            return command.ExecuteNonQuery() == 1;
+            try
+            {
+                command.ExecuteNonQuery();
+                if (int.TryParse(outputParam.Value?.ToString(), out var id))
+                {
+                    visitanteId = id;
+                    return true;
+                }
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public Visitante? ObtenerPorId(int id)
@@ -46,13 +64,11 @@ namespace TP_ClubDeportivo.DAO
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"SELECT id_visitante, dni, nombre, apellido, telefono, actividad, fecha_ingreso, pago_diario_monto
-                                  FROM visitantes
-                                  WHERE id_visitante = @id_visitante
-                                  LIMIT 1";
-
-            using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@id_visitante", id);
+            using var command = new MySqlCommand("sp_obtener_visitante_por_id", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_id_visitante", id);
 
             using var reader = command.ExecuteReader();
             return reader.Read() ? MapearVisitante(reader) : null;
@@ -63,11 +79,11 @@ namespace TP_ClubDeportivo.DAO
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"SELECT id_visitante, dni, nombre, apellido, telefono, actividad, fecha_ingreso, pago_diario_monto
-                                  FROM visitantes
-                                  ORDER BY fecha_ingreso DESC";
+            using var command = new MySqlCommand("sp_obtener_visitantes", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
 
-            using var command = new MySqlCommand(sql, connection);
             using var reader = command.ExecuteReader();
 
             var lista = new List<Visitante>();

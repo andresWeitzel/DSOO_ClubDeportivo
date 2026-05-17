@@ -31,34 +31,14 @@ namespace TP_ClubDeportivo.DAO
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"SELECT
-                                   u.CodUsu AS id_usuario,
-                                   u.NombreUsu AS username,
-                                   u.PassUsu AS password,
-                                   r.NomRol AS rol,
-                                   u.FechaRegistro AS fecha_registro
-                                 FROM usuario u
-                                 INNER JOIN roles r ON u.RolUsu = r.RolUsu
-                                 WHERE u.NombreUsu = @username
-                                 LIMIT 1";
-
-            using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@username", username);
+            using var command = new MySqlCommand("sp_obtener_usuario_por_username", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_username", username);
 
             using var reader = command.ExecuteReader();
-            if (!reader.Read())
-            {
-                return null;
-            }
-
-            return new Usuario
-            {
-                IdUsuario = reader.GetInt32("id_usuario"),
-                Username = reader.GetString("username"),
-                Password = reader.GetString("password"),
-                Rol = reader.GetString("rol"),
-                FechaRegistro = reader.GetDateTime("fecha_registro")
-            };
+            return reader.Read() ? MapearUsuario(reader) : null;
         }
 
         public Usuario? Login(string username, string password)
@@ -74,11 +54,11 @@ namespace TP_ClubDeportivo.DAO
             command.Parameters.AddWithValue("@Pass", password);
 
             using var reader = command.ExecuteReader();
-            if (!reader.Read())
-            {
-                return null;
-            }
+            return reader.Read() ? MapearUsuario(reader) : null;
+        }
 
+        private static Usuario MapearUsuario(MySqlDataReader reader)
+        {
             return new Usuario
             {
                 IdUsuario = reader.GetInt32("id_usuario"),

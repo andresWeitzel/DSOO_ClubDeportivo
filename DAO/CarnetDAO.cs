@@ -1,4 +1,5 @@
 using MySqlConnector;
+using System.Data;
 using TP_ClubDeportivo.Data;
 using TP_ClubDeportivo.Models;
 
@@ -18,24 +19,41 @@ namespace TP_ClubDeportivo.DAO
             _conexionFactory = conexionFactory;
         }
 
-        public bool Crear(Carnet carnet)
+        public bool Crear(Carnet carnet, out int carnetId)
         {
+            carnetId = 0;
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"INSERT INTO carnets
-                                  (socio_id, numero, fecha_emision, fecha_vencimiento, foto)
-                                  VALUES
-                                  (@socio_id, @numero, @fecha_emision, @fecha_vencimiento, @foto)";
+            using var command = new MySqlCommand("sp_emitir_carnet", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_socio_id", carnet.SocioId);
+            command.Parameters.AddWithValue("@p_numero", carnet.Numero);
+            command.Parameters.AddWithValue("@p_fecha_emision", carnet.FechaEmision);
+            command.Parameters.AddWithValue("@p_fecha_vencimiento", carnet.FechaVencimiento);
 
-            using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@socio_id", carnet.SocioId);
-            command.Parameters.AddWithValue("@numero", carnet.Numero);
-            command.Parameters.AddWithValue("@fecha_emision", carnet.FechaEmision);
-            command.Parameters.AddWithValue("@fecha_vencimiento", carnet.FechaVencimiento);
-            command.Parameters.AddWithValue("@foto", carnet.Foto);
+            var outputParam = new MySqlParameter("@p_carnet_id", MySqlDbType.Int32)
+            {
+                Direction = ParameterDirection.Output
+            };
+            command.Parameters.Add(outputParam);
 
-            return command.ExecuteNonQuery() == 1;
+            try
+            {
+                command.ExecuteNonQuery();
+                if (int.TryParse(outputParam.Value?.ToString(), out var id))
+                {
+                    carnetId = id;
+                    return true;
+                }
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public Carnet? ObtenerPorSocio(int socioId)
@@ -43,13 +61,11 @@ namespace TP_ClubDeportivo.DAO
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"SELECT id_carnet, socio_id, numero, fecha_emision, fecha_vencimiento, foto
-                                  FROM carnets
-                                  WHERE socio_id = @socio_id
-                                  LIMIT 1";
-
-            using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@socio_id", socioId);
+            using var command = new MySqlCommand("sp_obtener_carnet_por_socio", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_socio_id", socioId);
 
             using var reader = command.ExecuteReader();
             return reader.Read() ? MapearCarnet(reader) : null;

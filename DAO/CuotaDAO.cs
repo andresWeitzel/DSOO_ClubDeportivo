@@ -25,20 +25,11 @@ namespace TP_ClubDeportivo.DAO
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"SELECT
-                                    id_cuota,
-                                    socio_id,
-                                    monto,
-                                    fecha_emision,
-                                    fecha_vencimiento,
-                                    estado,
-                                    en_mora
-                                  FROM cuotas
-                                  WHERE socio_id = @socio_id
-                                  ORDER BY fecha_vencimiento DESC";
-
-            using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@socio_id", socioId);
+            using var command = new MySqlCommand("sp_obtener_cuotas_por_socio", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_socio_id", socioId);
 
             using var reader = command.ExecuteReader();
             var lista = new List<Cuota>();
@@ -55,45 +46,50 @@ namespace TP_ClubDeportivo.DAO
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"SELECT
-                                    id_cuota,
-                                    socio_id,
-                                    monto,
-                                    fecha_emision,
-                                    fecha_vencimiento,
-                                    estado,
-                                    en_mora
-                                  FROM cuotas
-                                  WHERE socio_id = @socio_id
-                                  ORDER BY fecha_vencimiento DESC
-                                  LIMIT 1";
-
-            using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@socio_id", socioId);
+            using var command = new MySqlCommand("sp_obtener_ultima_cuota_socio", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_socio_id", socioId);
 
             using var reader = command.ExecuteReader();
             return reader.Read() ? MapearCuota(reader) : null;
         }
 
-        public bool Crear(Cuota cuota)
+        public bool Crear(Cuota cuota, out int cuotaId)
         {
+            cuotaId = 0;
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"INSERT INTO cuotas
-                                  (socio_id, monto, fecha_emision, fecha_vencimiento, estado, en_mora)
-                                  VALUES
-                                  (@socio_id, @monto, @fecha_emision, @fecha_vencimiento, @estado, @en_mora)";
+            using var command = new MySqlCommand("sp_crear_cuota", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_socio_id", cuota.SocioId);
+            command.Parameters.AddWithValue("@p_monto", cuota.Monto);
+            command.Parameters.AddWithValue("@p_fecha_vencimiento", cuota.FechaVencimiento);
 
-            using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@socio_id", cuota.SocioId);
-            command.Parameters.AddWithValue("@monto", cuota.Monto);
-            command.Parameters.AddWithValue("@fecha_emision", cuota.FechaEmision);
-            command.Parameters.AddWithValue("@fecha_vencimiento", cuota.FechaVencimiento);
-            command.Parameters.AddWithValue("@estado", string.IsNullOrWhiteSpace(cuota.Estado) ? "AL_DIA" : cuota.Estado);
-            command.Parameters.AddWithValue("@en_mora", cuota.EnMora);
+            var outputParam = new MySqlParameter("@p_cuota_id", MySqlDbType.Int32)
+            {
+                Direction = ParameterDirection.Output
+            };
+            command.Parameters.Add(outputParam);
 
-            return command.ExecuteNonQuery() == 1;
+            try
+            {
+                command.ExecuteNonQuery();
+                if (int.TryParse(outputParam.Value?.ToString(), out var id))
+                {
+                    cuotaId = id;
+                    return true;
+                }
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public bool ActualizarEstado(int cuotaId, string estado, bool enMora)
@@ -101,17 +97,22 @@ namespace TP_ClubDeportivo.DAO
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"UPDATE cuotas
-                                  SET estado = @estado,
-                                      en_mora = @en_mora
-                                  WHERE id_cuota = @id_cuota";
+            using var command = new MySqlCommand("sp_actualizar_estado_cuota_mora", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_id_cuota", cuotaId);
+            command.Parameters.AddWithValue("@p_estado", estado);
+            command.Parameters.AddWithValue("@p_en_mora", enMora);
 
-            using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@estado", estado);
-            command.Parameters.AddWithValue("@en_mora", enMora);
-            command.Parameters.AddWithValue("@id_cuota", cuotaId);
-
-            return command.ExecuteNonQuery() == 1;
+            try
+            {
+                return command.ExecuteNonQuery() >= 1;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public IEnumerable<Cuota> ObtenerPorVencerEnDias(int dias)
@@ -119,20 +120,11 @@ namespace TP_ClubDeportivo.DAO
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"SELECT
-                                    id_cuota,
-                                    socio_id,
-                                    monto,
-                                    fecha_emision,
-                                    fecha_vencimiento,
-                                    estado,
-                                    en_mora
-                                  FROM cuotas
-                                  WHERE fecha_vencimiento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL @dias DAY)
-                                  ORDER BY fecha_vencimiento";
-
-            using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@dias", dias);
+            using var command = new MySqlCommand("sp_cuotas_por_vencer", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_dias", dias);
 
             using var reader = command.ExecuteReader();
             var lista = new List<Cuota>();
@@ -149,19 +141,11 @@ namespace TP_ClubDeportivo.DAO
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"SELECT
-                                    id_cuota,
-                                    socio_id,
-                                    monto,
-                                    fecha_emision,
-                                    fecha_vencimiento,
-                                    estado,
-                                    en_mora
-                                  FROM cuotas
-                                  WHERE fecha_vencimiento < CURDATE()
-                                  ORDER BY fecha_vencimiento";
+            using var command = new MySqlCommand("sp_cuotas_vencidas", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
 
-            using var command = new MySqlCommand(sql, connection);
             using var reader = command.ExecuteReader();
             var lista = new List<Cuota>();
             while (reader.Read())

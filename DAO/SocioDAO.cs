@@ -25,19 +25,11 @@ namespace TP_ClubDeportivo.DAO
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"SELECT
-                                    id_socio,
-                                    dni,
-                                    nombre,
-                                    apellido,
-                                    telefono,
-                                    direccion,
-                                    email,
-                                    estado_cuota,
-                                    fecha_alta
-                                  FROM socios";
+            using var command = new MySqlCommand("sp_obtener_socios", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
 
-            using var command = new MySqlCommand(sql, connection);
             using var reader = command.ExecuteReader();
 
             var lista = new List<Socio>();
@@ -54,22 +46,11 @@ namespace TP_ClubDeportivo.DAO
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"SELECT
-                                    id_socio,
-                                    dni,
-                                    nombre,
-                                    apellido,
-                                    telefono,
-                                    direccion,
-                                    email,
-                                    estado_cuota,
-                                    fecha_alta
-                                  FROM socios
-                                  WHERE id_socio = @id_socio
-                                  LIMIT 1";
-
-            using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@id_socio", id);
+            using var command = new MySqlCommand("sp_obtener_socio_por_id", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_id_socio", id);
 
             using var reader = command.ExecuteReader();
             return reader.Read() ? MapearSocio(reader) : null;
@@ -80,47 +61,53 @@ namespace TP_ClubDeportivo.DAO
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"SELECT
-                                    id_socio,
-                                    dni,
-                                    nombre,
-                                    apellido,
-                                    telefono,
-                                    direccion,
-                                    email,
-                                    estado_cuota,
-                                    fecha_alta
-                                  FROM socios
-                                  WHERE dni = @dni
-                                  LIMIT 1";
-
-            using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@dni", dni);
+            using var command = new MySqlCommand("sp_obtener_socio_por_dni", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_dni", dni);
 
             using var reader = command.ExecuteReader();
             return reader.Read() ? MapearSocio(reader) : null;
         }
 
-        public bool Crear(Socio socio)
+        public bool Crear(Socio socio, out int socioId)
         {
+            socioId = 0;
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"INSERT INTO socios
-                                  (dni, nombre, apellido, telefono, direccion, email, estado_cuota)
-                                  VALUES
-                                  (@dni, @nombre, @apellido, @telefono, @direccion, @email, @estado_cuota)";
+            using var command = new MySqlCommand("sp_crear_socio", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_dni", socio.DNI);
+            command.Parameters.AddWithValue("@p_nombre", socio.Nombre);
+            command.Parameters.AddWithValue("@p_apellido", socio.Apellido);
+            command.Parameters.AddWithValue("@p_telefono", socio.Telefono);
+            command.Parameters.AddWithValue("@p_direccion", socio.Direccion);
+            command.Parameters.AddWithValue("@p_email", socio.Email);
 
-            using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@dni", socio.DNI);
-            command.Parameters.AddWithValue("@nombre", socio.Nombre);
-            command.Parameters.AddWithValue("@apellido", socio.Apellido);
-            command.Parameters.AddWithValue("@telefono", socio.Telefono);
-            command.Parameters.AddWithValue("@direccion", socio.Direccion);
-            command.Parameters.AddWithValue("@email", socio.Email);
-            command.Parameters.AddWithValue("@estado_cuota", string.IsNullOrWhiteSpace(socio.EstadoCuota) ? "AL_DIA" : socio.EstadoCuota);
+            var outputParam = new MySqlParameter("@p_socio_id", MySqlDbType.Int32)
+            {
+                Direction = ParameterDirection.Output
+            };
+            command.Parameters.Add(outputParam);
 
-            return command.ExecuteNonQuery() == 1;
+            try
+            {
+                command.ExecuteNonQuery();
+                if (int.TryParse(outputParam.Value?.ToString(), out var id))
+                {
+                    socioId = id;
+                    return true;
+                }
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public bool ActualizarEstadoCuota(int socioId, string estado)
@@ -128,15 +115,21 @@ namespace TP_ClubDeportivo.DAO
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            const string sql = @"UPDATE socios
-                                  SET estado_cuota = @estado_cuota
-                                  WHERE id_socio = @id_socio";
+            using var command = new MySqlCommand("sp_actualizar_estado_cuota", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_socio_id", socioId);
+            command.Parameters.AddWithValue("@p_estado", estado);
 
-            using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@estado_cuota", estado);
-            command.Parameters.AddWithValue("@id_socio", socioId);
-
-            return command.ExecuteNonQuery() == 1;
+            try
+            {
+                return command.ExecuteNonQuery() >= 1;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private static Socio MapearSocio(MySqlDataReader reader)
