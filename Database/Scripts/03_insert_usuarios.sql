@@ -2,7 +2,11 @@ USE db_club_deportivo;
 
 INSERT INTO roles (RolUsu, NomRol) VALUES
 (120, 'Administrador'),
-(121, 'Empleado');
+(121, 'Empleado'),
+(122, 'Profesor'),
+(123, 'Nutricionista'),
+(124, 'Socio'),
+(125, 'Visitante');
 
 INSERT INTO usuario (NombreUsu, PassUsu, RolUsu) VALUES
 ('Mari2023', '123456', 120),
