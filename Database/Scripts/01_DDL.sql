@@ -89,7 +89,7 @@ CREATE TABLE profesores (
     sueldo_base DECIMAL(12,2) DEFAULT 0.00
 );
 
-CREATE TABLE horarios_clase (
+CREATE TABLE horarios_actividad (
     id_horario INT PRIMARY KEY AUTO_INCREMENT,
     profesor_id INT NOT NULL,
     dia_semana VARCHAR(30) NOT NULL,

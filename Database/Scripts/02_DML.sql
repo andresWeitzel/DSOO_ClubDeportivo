@@ -143,9 +143,9 @@ INSERT INTO nutricionistas (dni, nombre, apellido, telefono, email, matricula) V
 ('91919191', 'Rodrigo', 'Vargas', '9191919191', 'rodrigo.vargas@email.com', 'MAT-NUTRI-002');
 
 -- ============================================
--- INSERTAR HORARIOS CLASE
+-- INSERTAR HORARIOS ACTIVIDAD
 -- ============================================
-INSERT INTO horarios_clase (profesor_id, dia_semana, hora_inicio, hora_fin, actividad) VALUES
+INSERT INTO horarios_actividad (profesor_id, dia_semana, hora_inicio, hora_fin, actividad) VALUES
 (1, 'Lunes', '09:00:00', '10:00:00', 'Musculación Básica'),
 (1, 'Miércoles', '16:00:00', '17:00:00', 'Musculación Avanzada'),
 (1, 'Viernes', '18:00:00', '19:00:00', 'Musculación Intermedia'),

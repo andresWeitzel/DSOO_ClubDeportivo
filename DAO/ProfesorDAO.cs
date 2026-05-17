@@ -149,7 +149,7 @@ namespace TP_ClubDeportivo.DAO
             {
                 CommandType = CommandType.StoredProcedure
             };
-            command.Parameters.AddWithValue("@p_id_profesor", profesor.IdPersona);
+            command.Parameters.AddWithValue("@p_id_profesor", profesor.IdProfesor);
             command.Parameters.AddWithValue("@p_nombre", profesor.Nombre);
             command.Parameters.AddWithValue("@p_apellido", profesor.Apellido);
             command.Parameters.AddWithValue("@p_telefono", profesor.Telefono);
@@ -201,7 +201,7 @@ namespace TP_ClubDeportivo.DAO
         {
             return new Profesor
             {
-                IdPersona = reader.GetInt32("id_profesor"),
+                IdProfesor = reader.GetInt32("id_profesor"),
                 DNI = reader.GetString("dni"),
                 Nombre = reader.GetString("nombre"),
                 Apellido = reader.GetString("apellido"),

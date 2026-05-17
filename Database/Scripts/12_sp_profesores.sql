@@ -137,7 +137,7 @@ BEGIN
     DECLARE v_tiene_liquidaciones INT;
     
     SELECT COUNT(*) INTO v_tiene_rutinas FROM rutinas WHERE profesor_id = p_id_profesor;
-    SELECT COUNT(*) INTO v_tiene_horarios FROM horarios_clase WHERE profesor_id = p_id_profesor;
+    SELECT COUNT(*) INTO v_tiene_horarios FROM horarios_actividad WHERE profesor_id = p_id_profesor;
     SELECT COUNT(*) INTO v_tiene_asistencias FROM asistencias WHERE profesor_id = p_id_profesor;
     SELECT COUNT(*) INTO v_tiene_liquidaciones FROM liquidaciones WHERE profesor_id = p_id_profesor;
     

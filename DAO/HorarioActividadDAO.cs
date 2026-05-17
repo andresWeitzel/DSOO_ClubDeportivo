@@ -101,7 +101,7 @@ namespace TP_ClubDeportivo.DAO
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            using var command = new MySqlCommand("sp_crear_horario_clase", connection)
+            using var command = new MySqlCommand("sp_crear_horario_actividad", connection)
             {
                 CommandType = CommandType.StoredProcedure
             };
@@ -138,7 +138,7 @@ namespace TP_ClubDeportivo.DAO
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            using var command = new MySqlCommand("sp_actualizar_horario_clase", connection)
+            using var command = new MySqlCommand("sp_actualizar_horario_actividad", connection)
             {
                 CommandType = CommandType.StoredProcedure
             };
@@ -163,7 +163,7 @@ namespace TP_ClubDeportivo.DAO
             using var connection = _conexionFactory.ObtenerConexion();
             connection.Open();
 
-            using var command = new MySqlCommand("sp_eliminar_horario_clase", connection)
+            using var command = new MySqlCommand("sp_eliminar_horario_actividad", connection)
             {
                 CommandType = CommandType.StoredProcedure
             };

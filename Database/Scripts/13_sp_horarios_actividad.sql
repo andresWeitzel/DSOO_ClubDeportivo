@@ -1,14 +1,14 @@
 USE db_club_deportivo;
 
 -- ============================================
--- STORED PROCEDURES - HORARIOS DE CLASE
+-- STORED PROCEDURES - HORARIOS DE ACTIVIDAD
 -- ============================================
 
-DROP PROCEDURE IF EXISTS sp_crear_horario_clase;
+DROP PROCEDURE IF EXISTS sp_crear_horario_actividad;
 
 DELIMITER $$
 
-CREATE PROCEDURE sp_crear_horario_clase(
+CREATE PROCEDURE sp_crear_horario_actividad(
     IN p_profesor_id INT,
     IN p_dia_semana VARCHAR(30),
     IN p_hora_inicio TIME,
@@ -17,7 +17,7 @@ CREATE PROCEDURE sp_crear_horario_clase(
     OUT p_horario_id INT
 )
 BEGIN
-    INSERT INTO horarios_clase (profesor_id, dia_semana, hora_inicio, hora_fin, actividad)
+    INSERT INTO horarios_actividad (profesor_id, dia_semana, hora_inicio, hora_fin, actividad)
     VALUES (p_profesor_id, p_dia_semana, p_hora_inicio, p_hora_fin, p_actividad);
     
     SET p_horario_id = LAST_INSERT_ID();
@@ -40,7 +40,7 @@ BEGIN
         hora_inicio,
         hora_fin,
         actividad
-    FROM horarios_clase
+    FROM horarios_actividad
     WHERE id_horario = p_id_horario;
 END$$
 
@@ -61,7 +61,7 @@ BEGIN
         hora_inicio,
         hora_fin,
         actividad
-    FROM horarios_clase
+    FROM horarios_actividad
     WHERE profesor_id = p_profesor_id
     ORDER BY 
         CASE 
@@ -94,7 +94,7 @@ BEGIN
         h.hora_inicio,
         h.hora_fin,
         h.actividad
-    FROM horarios_clase h
+    FROM horarios_actividad h
     INNER JOIN profesores p ON h.profesor_id = p.id_profesor
     WHERE h.dia_semana = p_dia_semana
     ORDER BY h.hora_inicio;
@@ -116,7 +116,7 @@ BEGIN
         h.hora_inicio,
         h.hora_fin,
         h.actividad
-    FROM horarios_clase h
+    FROM horarios_actividad h
     INNER JOIN profesores p ON h.profesor_id = p.id_profesor
     ORDER BY 
         CASE 
@@ -133,11 +133,11 @@ END$$
 
 DELIMITER ;
 
-DROP PROCEDURE IF EXISTS sp_actualizar_horario_clase;
+DROP PROCEDURE IF EXISTS sp_actualizar_horario_actividad;
 
 DELIMITER $$
 
-CREATE PROCEDURE sp_actualizar_horario_clase(
+CREATE PROCEDURE sp_actualizar_horario_actividad(
     IN p_id_horario INT,
     IN p_dia_semana VARCHAR(30),
     IN p_hora_inicio TIME,
@@ -145,7 +145,7 @@ CREATE PROCEDURE sp_actualizar_horario_clase(
     IN p_actividad VARCHAR(150)
 )
 BEGIN
-    UPDATE horarios_clase
+    UPDATE horarios_actividad
     SET 
         dia_semana = p_dia_semana,
         hora_inicio = p_hora_inicio,
@@ -156,17 +156,17 @@ END$$
 
 DELIMITER ;
 
-DROP PROCEDURE IF EXISTS sp_eliminar_horario_clase;
+DROP PROCEDURE IF EXISTS sp_eliminar_horario_actividad;
 
 DELIMITER $$
 
-CREATE PROCEDURE sp_eliminar_horario_clase(
+CREATE PROCEDURE sp_eliminar_horario_actividad(
     IN p_id_horario INT,
     OUT p_mensaje VARCHAR(255)
 )
 BEGIN
-    DELETE FROM horarios_clase WHERE id_horario = p_id_horario;
-    SET p_mensaje = 'Horario de clase eliminado correctamente.';
+    DELETE FROM horarios_actividad WHERE id_horario = p_id_horario;
+    SET p_mensaje = 'Horario de actividad eliminado correctamente.';
 END$$
 
 DELIMITER ;
