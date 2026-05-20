@@ -18,10 +18,14 @@ CREATE PROCEDURE sp_crear_socio(
     OUT p_socio_id INT
 )
 BEGIN
-    INSERT INTO socios (dni, nombre, apellido, telefono, direccion, email, estado_cuota)
-    VALUES (p_dni, p_nombre, p_apellido, p_telefono, p_direccion, p_email, 'AL_DIA');
-    
-    SET p_socio_id = LAST_INSERT_ID();
+    IF EXISTS (SELECT 1 FROM socios WHERE TRIM(dni) = TRIM(p_dni) LIMIT 1) THEN
+        SET p_socio_id = 0;
+    ELSE
+        INSERT INTO socios (dni, nombre, apellido, telefono, direccion, email, estado_cuota)
+        VALUES (p_dni, p_nombre, p_apellido, p_telefono, p_direccion, p_email, 'AL_DIA');
+
+        SET p_socio_id = LAST_INSERT_ID();
+    END IF;
 END$$
 
 DELIMITER ;
@@ -123,7 +127,7 @@ BEGIN
         estado_cuota,
         fecha_alta
     FROM socios
-    WHERE dni = p_dni;
+    WHERE TRIM(dni) = TRIM(p_dni);
 END$$
 
 DELIMITER ;

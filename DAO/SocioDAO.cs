@@ -65,11 +65,13 @@ namespace TP_ClubDeportivo.DAO
             {
                 CommandType = CommandType.StoredProcedure
             };
-            command.Parameters.AddWithValue("@p_dni", dni);
+            command.Parameters.AddWithValue("@p_dni", dni.Trim());
 
             using var reader = command.ExecuteReader();
             return reader.Read() ? MapearSocio(reader) : null;
         }
+
+        public bool ExisteDni(string dni) => ObtenerPorDni(dni) is not null;
 
         public bool Crear(Socio socio, out int socioId)
         {
@@ -81,7 +83,7 @@ namespace TP_ClubDeportivo.DAO
             {
                 CommandType = CommandType.StoredProcedure
             };
-            command.Parameters.AddWithValue("@p_dni", socio.DNI);
+            command.Parameters.AddWithValue("@p_dni", socio.DNI.Trim());
             command.Parameters.AddWithValue("@p_nombre", socio.Nombre);
             command.Parameters.AddWithValue("@p_apellido", socio.Apellido);
             command.Parameters.AddWithValue("@p_telefono", socio.Telefono);
@@ -97,7 +99,7 @@ namespace TP_ClubDeportivo.DAO
             try
             {
                 command.ExecuteNonQuery();
-                if (int.TryParse(outputParam.Value?.ToString(), out var id))
+                if (int.TryParse(outputParam.Value?.ToString(), out var id) && id > 0)
                 {
                     socioId = id;
                     return true;

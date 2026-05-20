@@ -26,6 +26,8 @@ namespace TP_ClubDeportivo.Forms
         private readonly FichaMedicaDAO _fichaDao = new();
 
         private int? _socioSeleccionadoId;
+        private bool _modoAlta = true;
+        private bool _omitirSeleccionGrilla;
 
         public FormSocios()
         {
@@ -251,6 +253,11 @@ namespace TP_ClubDeportivo.Forms
 
         private void DgvSocios_SelectionChanged(object? sender, EventArgs e)
         {
+            if (_omitirSeleccionGrilla)
+            {
+                return;
+            }
+
             if (dgvSocios.CurrentRow?.DataBoundItem is not Socio fila)
             {
                 return;
@@ -261,6 +268,7 @@ namespace TP_ClubDeportivo.Forms
 
         private void ModoEdicion(Socio socio)
         {
+            _modoAlta = false;
             _socioSeleccionadoId = socio.IdSocio;
 
             grpFormulario.Text = $"Editar socio Nº {socio.IdSocio}";
@@ -285,8 +293,16 @@ namespace TP_ClubDeportivo.Forms
 
         private void ModoNuevo()
         {
+            _modoAlta = true;
             _socioSeleccionadoId = null;
+
+            _omitirSeleccionGrilla = true;
             dgvSocios.ClearSelection();
+            if (dgvSocios.Rows.Count > 0)
+            {
+                dgvSocios.CurrentCell = null;
+            }
+            _omitirSeleccionGrilla = false;
 
             grpFormulario.Text = "Nuevo socio (CU-01)";
             lblModo.Text = "Alta: complete los datos para registrar el socio (CU-01).";
@@ -306,10 +322,11 @@ namespace TP_ClubDeportivo.Forms
 
         private void CargarSocios()
         {
-            var idPrevio = _socioSeleccionadoId;
+            var idPrevio = _modoAlta ? null : _socioSeleccionadoId;
 
             try
             {
+                _omitirSeleccionGrilla = true;
                 dgvSocios.DataSource = _socioDao.ObtenerTodos().ToList();
                 ConfigurarColumnasGrilla();
 
@@ -321,15 +338,22 @@ namespace TP_ClubDeportivo.Forms
                         {
                             row.Selected = true;
                             dgvSocios.CurrentCell = row.Cells[0];
+                            _omitirSeleccionGrilla = false;
                             return;
                         }
                     }
                 }
 
                 dgvSocios.ClearSelection();
+                if (dgvSocios.Rows.Count > 0)
+                {
+                    dgvSocios.CurrentCell = null;
+                }
+                _omitirSeleccionGrilla = false;
             }
             catch (Exception ex)
             {
+                _omitirSeleccionGrilla = false;
                 MessageBox.Show($"Error al cargar socios: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -418,13 +442,13 @@ namespace TP_ClubDeportivo.Forms
 
             try
             {
-                if (_socioSeleccionadoId.HasValue)
+                if (_modoAlta)
                 {
-                    ActualizarSocio();
+                    CrearSocio();
                 }
                 else
                 {
-                    CrearSocio();
+                    ActualizarSocio();
                 }
             }
             catch (Exception ex)
@@ -459,9 +483,16 @@ namespace TP_ClubDeportivo.Forms
                 Email = txtEmail.Text.Trim()
             };
 
-            if (!_socioDao.Crear(socio, out var socioId))
+            if (!_socioDao.Crear(socio, out var socioId) || socioId <= 0)
             {
-                lblMensaje.Text = "No se pudo registrar el socio.";
+                if (_socioDao.ExisteDni(dni))
+                {
+                    MessageBox.Show("Ya existe un socio con ese DNI.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+                else
+                {
+                    lblMensaje.Text = "No se pudo registrar el socio.";
+                }
                 return;
             }
 
@@ -586,6 +617,14 @@ namespace TP_ClubDeportivo.Forms
                 MessageBox.Show("Complete DNI, nombre y apellido.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
+
+            if (_modoAlta &&
+                (string.IsNullOrWhiteSpace(txtTelefono.Text) || string.IsNullOrWhiteSpace(txtEmail.Text)))
+            {
+                MessageBox.Show("En el alta complete también teléfono y email.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
             return true;
         }
 

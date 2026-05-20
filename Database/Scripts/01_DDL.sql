@@ -21,7 +21,7 @@ CREATE TABLE usuario (
 
 CREATE TABLE socios (
     id_socio INT PRIMARY KEY AUTO_INCREMENT,
-    dni VARCHAR(20) NOT NULL,
+    dni VARCHAR(20) NOT NULL UNIQUE,
     nombre VARCHAR(100) NOT NULL,
     apellido VARCHAR(100) NOT NULL,
     telefono VARCHAR(50),
