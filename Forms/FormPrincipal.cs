@@ -140,7 +140,9 @@ namespace TP_ClubDeportivo.Forms
             var btnSocios = UiTheme.CrearBotonSidebar("Socios", (_, _) => AbrirFormulario<FormSocios>());
             var btnVisitantes = UiTheme.CrearBotonSidebar("Visitantes", (_, _) => AbrirFormulario<FormVisitantes>());
             var btnCuotas = UiTheme.CrearBotonSidebar("Cobrar cuota", (_, _) => AbrirFormulario<FormCobroCuota>());
+            var btnReportes = UiTheme.CrearBotonSidebar("Reportes", (_, _) => AbrirFormulario<FormReportes>());
 
+            panelNav.Controls.Add(btnReportes);
             panelNav.Controls.Add(btnCuotas);
             panelNav.Controls.Add(btnVisitantes);
             panelNav.Controls.Add(btnSocios);
@@ -223,6 +225,12 @@ namespace TP_ClubDeportivo.Forms
                 "Buscar socio, ver cuotas y registrar pagos.",
                 "Cuotas",
                 () => AbrirFormulario<FormCobroCuota>()));
+
+            flowTarjetas.Controls.Add(UiTheme.CrearTarjetaAcceso(
+                "Reportes",
+                "Cuotas por vencer y cuotas vencidas para gestión de cobranza.",
+                "Reportes",
+                () => AbrirFormulario<FormReportes>()));
 
             var panelInfo = new Panel
             {

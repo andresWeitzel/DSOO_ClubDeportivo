@@ -115,47 +115,6 @@ namespace TP_ClubDeportivo.DAO
             }
         }
 
-        public IEnumerable<Cuota> ObtenerPorVencerEnDias(int dias)
-        {
-            using var connection = _conexionFactory.ObtenerConexion();
-            connection.Open();
-
-            using var command = new MySqlCommand("sp_cuotas_por_vencer", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-            command.Parameters.AddWithValue("@p_dias", dias);
-
-            using var reader = command.ExecuteReader();
-            var lista = new List<Cuota>();
-            while (reader.Read())
-            {
-                lista.Add(MapearCuota(reader));
-            }
-
-            return lista;
-        }
-
-        public IEnumerable<Cuota> ObtenerVencidas()
-        {
-            using var connection = _conexionFactory.ObtenerConexion();
-            connection.Open();
-
-            using var command = new MySqlCommand("sp_cuotas_vencidas", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            using var reader = command.ExecuteReader();
-            var lista = new List<Cuota>();
-            while (reader.Read())
-            {
-                lista.Add(MapearCuota(reader));
-            }
-
-            return lista;
-        }
-
         private static Cuota MapearCuota(MySqlDataReader reader)
         {
             return new Cuota
