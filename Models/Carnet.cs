@@ -14,6 +14,10 @@ namespace TP_ClubDeportivo.Models
 
         public string Foto { get; set; } = string.Empty;
 
+        public bool EstaVencido() => FechaVencimiento.Date < DateTime.Today;
+
+        public string EstadoTexto => EstaVencido() ? "VENCIDO" : "VIGENTE";
+
         public void Emitir()
         {
             Console.WriteLine("Carnet emitido.");

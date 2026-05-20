@@ -71,6 +71,41 @@ namespace TP_ClubDeportivo.DAO
             return reader.Read() ? MapearCarnet(reader) : null;
         }
 
+        public bool Renovar(int socioId, DateTime nuevaVencimiento, out int carnetId)
+        {
+            carnetId = 0;
+            using var connection = _conexionFactory.ObtenerConexion();
+            connection.Open();
+
+            using var command = new MySqlCommand("sp_renovar_carnet", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_socio_id", socioId);
+            command.Parameters.AddWithValue("@p_fecha_vencimiento", nuevaVencimiento.Date);
+
+            var outputParam = new MySqlParameter("@p_carnet_id", MySqlDbType.Int32)
+            {
+                Direction = ParameterDirection.Output
+            };
+            command.Parameters.Add(outputParam);
+
+            try
+            {
+                command.ExecuteNonQuery();
+                if (int.TryParse(outputParam.Value?.ToString(), out var id))
+                {
+                    carnetId = id;
+                    return id > 0;
+                }
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private static Carnet MapearCarnet(MySqlDataReader reader)
         {
             return new Carnet

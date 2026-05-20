@@ -35,7 +35,7 @@ namespace TP_ClubDeportivo.Forms
         public FormCobroCuota(string? dniInicial)
         {
             _dniInicial = dniInicial;
-            Text = "Cobro de Cuota Mensual";
+            Text = "Cobro de cuota mensual (CU-03)";
             StartPosition = FormStartPosition.CenterParent;
             Size = new Size(950, 620);
             MinimumSize = new Size(880, 560);
@@ -536,6 +536,8 @@ namespace TP_ClubDeportivo.Forms
                     }
                 }
 
+                ActualizarEstadoSocioSegunCuotasPendientes(_socioSeleccionado.IdSocio);
+
                 MessageBox.Show(mensaje, "Cobro exitoso", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 BuscarSocio();
             }
@@ -543,6 +545,20 @@ namespace TP_ClubDeportivo.Forms
             {
                 MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        /// <summary>
+        /// El SP marca AL_DIA al cobrar; si aún hay cuotas vencidas sin pagar, el socio queda en MORA.
+        /// </summary>
+        private void ActualizarEstadoSocioSegunCuotasPendientes(int socioId)
+        {
+            var pendientes = _cuotaDao.ObtenerPorSocio(socioId)
+                .Where(c => c.Estado != "PAGADA")
+                .ToList();
+
+            var enMora = pendientes.Exists(c => c.EstaVencida() || c.EnMora || c.Estado == "VENCIDA");
+            var nuevoEstado = enMora ? "MORA" : "AL_DIA";
+            _socioDao.ActualizarEstadoCuota(socioId, nuevoEstado);
         }
 
         private void LimpiarBusqueda()
