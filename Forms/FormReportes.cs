@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Globalization;
+using System.Linq;
 using System.Windows.Forms;
 using TP_ClubDeportivo.DAO;
 using TP_ClubDeportivo.Models;
@@ -19,15 +20,23 @@ namespace TP_ClubDeportivo.Forms
         private readonly Button btnCobrarSeleccion;
         private readonly Button btnControlVencimiento;
         private readonly Label lblControlCu04;
+        private readonly DataGridView dgvAsistenciaProfesores;
+        private readonly DateTimePicker dtpAsistenciaDesde;
+        private readonly DateTimePicker dtpAsistenciaHasta;
+        private readonly ComboBox cboProfesorAsistencia;
+        private readonly Label lblResumenAsistencia;
+        private readonly Button btnGenerarAsistencia;
+        private readonly Button btnExportar;
 
         private readonly ReporteDAO _reporteDao = new();
+        private readonly ProfesorDAO _profesorDao = new();
 
         public FormReportes()
         {
-            Text = "Control de vencimiento y reportes (CU-04)";
+            Text = "Generar reportes (CU-09)";
             StartPosition = FormStartPosition.CenterParent;
-            Size = new Size(980, 600);
-            MinimumSize = new Size(900, 520);
+            Size = new Size(1000, 640);
+            MinimumSize = new Size(920, 560);
             Font = UiTheme.FuenteNormal;
             BackColor = UiTheme.Fondo;
 
@@ -38,12 +47,17 @@ namespace TP_ClubDeportivo.Forms
                 Padding = new Point(12, 8)
             };
 
-            var tabPorVencer = new TabPage("Próximos a vencer")
+            var tabPorVencer = new TabPage("Cuotas por vencer")
             {
                 BackColor = UiTheme.Fondo,
                 Padding = new Padding(12)
             };
-            var tabVencidas = new TabPage("En mora / vencidas")
+            var tabVencidas = new TabPage("Morosos")
+            {
+                BackColor = UiTheme.Fondo,
+                Padding = new Padding(12)
+            };
+            var tabAsistencia = new TabPage("Asistencia profesores")
             {
                 BackColor = UiTheme.Fondo,
                 Padding = new Padding(12)
@@ -89,9 +103,9 @@ namespace TP_ClubDeportivo.Forms
 
             btnGenerarPorVencer = new Button
             {
-                Text = "Actualizar",
+                Text = "Generar reporte",
                 AutoSize = true,
-                MinimumSize = new Size(110, 32),
+                MinimumSize = new Size(130, 32),
                 Margin = new Padding(16, 4, 0, 0)
             };
             UiTheme.AplicarBotonPrimario(btnGenerarPorVencer);
@@ -138,9 +152,9 @@ namespace TP_ClubDeportivo.Forms
 
             btnGenerarVencidas = new Button
             {
-                Text = "Actualizar",
+                Text = "Generar reporte",
                 AutoSize = true,
-                MinimumSize = new Size(110, 32),
+                MinimumSize = new Size(130, 32),
                 Margin = new Padding(8, 0, 0, 0)
             };
             UiTheme.AplicarBotonPrimario(btnGenerarVencidas);
@@ -164,24 +178,153 @@ namespace TP_ClubDeportivo.Forms
             tabVencidas.Controls.Add(lblResumenVencidas);
             tabVencidas.Controls.Add(panelFiltroVencidas);
 
+            // --- Tab asistencia profesores (RF-17) ---
+            var panelFiltroAsistencia = CrearPanelFiltro();
+
+            var flowAsistencia = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = true,
+                Padding = new Padding(4, 6, 4, 6),
+                BackColor = UiTheme.Tarjeta
+            };
+
+            flowAsistencia.Controls.Add(new Label
+            {
+                Text = "Desde:",
+                AutoSize = true,
+                Margin = new Padding(8, 10, 0, 0),
+                Font = UiTheme.FuenteNormal
+            });
+
+            dtpAsistenciaDesde = new DateTimePicker
+            {
+                Format = DateTimePickerFormat.Short,
+                Width = 110,
+                Margin = new Padding(6, 6, 0, 0),
+                Value = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)
+            };
+
+            flowAsistencia.Controls.Add(dtpAsistenciaDesde);
+            flowAsistencia.Controls.Add(new Label
+            {
+                Text = "Hasta:",
+                AutoSize = true,
+                Margin = new Padding(12, 10, 0, 0),
+                Font = UiTheme.FuenteNormal
+            });
+
+            dtpAsistenciaHasta = new DateTimePicker
+            {
+                Format = DateTimePickerFormat.Short,
+                Width = 110,
+                Margin = new Padding(6, 6, 0, 0),
+                Value = DateTime.Today
+            };
+
+            flowAsistencia.Controls.Add(dtpAsistenciaHasta);
+            flowAsistencia.Controls.Add(new Label
+            {
+                Text = "Profesor:",
+                AutoSize = true,
+                Margin = new Padding(12, 10, 0, 0),
+                Font = UiTheme.FuenteNormal
+            });
+
+            cboProfesorAsistencia = new ComboBox
+            {
+                Width = 220,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Margin = new Padding(6, 6, 0, 0),
+                Font = UiTheme.FuenteNormal
+            };
+
+            flowAsistencia.Controls.Add(cboProfesorAsistencia);
+
+            btnGenerarAsistencia = new Button
+            {
+                Text = "Generar reporte",
+                AutoSize = true,
+                MinimumSize = new Size(130, 32),
+                Margin = new Padding(16, 4, 0, 0)
+            };
+            UiTheme.AplicarBotonPrimario(btnGenerarAsistencia);
+            btnGenerarAsistencia.Click += (_, _) => CargarAsistenciaProfesores();
+            flowAsistencia.Controls.Add(btnGenerarAsistencia);
+
+            panelFiltroAsistencia.Controls.Add(flowAsistencia);
+
+            lblResumenAsistencia = CrearLabelResumen(UiTheme.PrimarioClaro, UiTheme.PrimarioOscuro);
+
+            dgvAsistenciaProfesores = CrearGrilla();
+            dgvAsistenciaProfesores.DataBindingComplete += (_, _) => ConfigurarColumnasAsistencia();
+
+            var panelGrillaAsistencia = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 8, 0, 0) };
+            panelGrillaAsistencia.Controls.Add(dgvAsistenciaProfesores);
+
+            tabAsistencia.Controls.Add(panelGrillaAsistencia);
+            tabAsistencia.Controls.Add(lblResumenAsistencia);
+            tabAsistencia.Controls.Add(panelFiltroAsistencia);
+
             tabReportes.TabPages.Add(tabPorVencer);
             tabReportes.TabPages.Add(tabVencidas);
-            tabReportes.SelectedIndexChanged += (_, _) => ActualizarBotonCobrar();
+            tabReportes.TabPages.Add(tabAsistencia);
+            tabReportes.SelectedIndexChanged += (_, _) =>
+            {
+                ActualizarBotonCobrar();
+                ActualizarBotonExportar();
+            };
 
             btnCobrarSeleccion = new Button
             {
                 Text = "Cobrar cuota del socio seleccionado",
-                Dock = DockStyle.Bottom,
-                Height = 44,
-                Margin = new Padding(0)
+                AutoSize = false,
+                Size = new Size(320, 42),
+                Margin = new Padding(0, 0, 12, 0)
             };
-            UiTheme.AplicarBotonSecundario(btnCobrarSeleccion);
+            UiTheme.AplicarBotonPrimario(btnCobrarSeleccion);
             btnCobrarSeleccion.Click += (_, _) => CobrarSocioSeleccionado();
             btnCobrarSeleccion.Enabled = false;
 
+            btnExportar = new Button
+            {
+                Text = "Exportar a CSV",
+                AutoSize = false,
+                Size = new Size(200, 42),
+                Margin = new Padding(0, 0, 12, 0)
+            };
+            UiTheme.AplicarBotonExito(btnExportar);
+            btnExportar.Click += (_, _) => ExportarReporteActual();
+
+            var flowAcciones = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                Padding = new Padding(4, 6, 4, 6),
+                BackColor = UiTheme.Tarjeta
+            };
+            flowAcciones.Controls.Add(btnExportar);
+            flowAcciones.Controls.Add(btnCobrarSeleccion);
+
+            var panelAcciones = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 58,
+                BackColor = UiTheme.Tarjeta,
+                Padding = new Padding(16, 6, 16, 6)
+            };
+            panelAcciones.Paint += (_, e) =>
+            {
+                using var pen = new Pen(UiTheme.Borde);
+                e.Graphics.DrawLine(pen, 0, 0, panelAcciones.Width, 0);
+            };
+            panelAcciones.Controls.Add(flowAcciones);
+
             var lblAyuda = new Label
             {
-                Text = "Tip: doble clic en una fila o use el botón inferior para ir a Cobrar cuota.",
+                Text = "CU-09: elegí el tipo de reporte en las pestañas, generá el listado y exportalo si lo necesitás. En cuotas: doble clic para cobrar.",
                 Dock = DockStyle.Bottom,
                 Height = 28,
                 ForeColor = UiTheme.TextoSecundario,
@@ -190,6 +333,35 @@ namespace TP_ClubDeportivo.Forms
                 Padding = new Padding(14, 0, 0, 0),
                 BackColor = UiTheme.Fondo
             };
+
+            var panelEncabezadoCu09 = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 72,
+                BackColor = UiTheme.Tarjeta,
+                Padding = new Padding(20, 12, 20, 8)
+            };
+            panelEncabezadoCu09.Paint += (_, e) =>
+            {
+                using var pen = new Pen(UiTheme.Borde);
+                e.Graphics.DrawLine(pen, 0, panelEncabezadoCu09.Height - 1, panelEncabezadoCu09.Width, panelEncabezadoCu09.Height - 1);
+            };
+
+            panelEncabezadoCu09.Controls.Add(new Label
+            {
+                Text = "Generar reportes",
+                Dock = DockStyle.Top,
+                Height = 28,
+                Font = new Font("Segoe UI", 14F, FontStyle.Bold),
+                ForeColor = UiTheme.Texto
+            });
+            panelEncabezadoCu09.Controls.Add(new Label
+            {
+                Text = "Seleccioná el tipo de reporte: cuotas por vencer, morosos o asistencia de profesores.",
+                Dock = DockStyle.Fill,
+                Font = UiTheme.FuenteSubtitulo,
+                ForeColor = UiTheme.TextoSecundario
+            });
 
             var panelControlCu04 = new Panel
             {
@@ -222,14 +394,116 @@ namespace TP_ClubDeportivo.Forms
             panelControlCu04.Controls.Add(btnControlVencimiento);
 
             Controls.Add(tabReportes);
-            Controls.Add(btnCobrarSeleccion);
+            Controls.Add(panelAcciones);
             Controls.Add(lblAyuda);
             Controls.Add(panelControlCu04);
+            Controls.Add(panelEncabezadoCu09);
 
             dgvPorVencer.SelectionChanged += (_, _) => ActualizarBotonCobrar();
             dgvVencidas.SelectionChanged += (_, _) => ActualizarBotonCobrar();
 
-            Load += (_, _) => EjecutarControlVencimientoCu04(mostrarResumen: false);
+            Load += (_, _) =>
+            {
+                CargarProfesoresFiltroAsistencia();
+                EjecutarControlVencimientoCu04(mostrarResumen: false);
+                ActualizarBotonExportar();
+            };
+        }
+
+        private void CargarProfesoresFiltroAsistencia()
+        {
+            try
+            {
+                cboProfesorAsistencia.Items.Clear();
+                cboProfesorAsistencia.Items.Add(new ProfesorFiltroItem(0, "Todos los profesores"));
+
+                foreach (var profesor in _profesorDao.ObtenerTodos())
+                {
+                    cboProfesorAsistencia.Items.Add(
+                        new ProfesorFiltroItem(profesor.IdProfesor, $"{profesor.Nombre} {profesor.Apellido}"));
+                }
+
+                cboProfesorAsistencia.SelectedIndex = 0;
+            }
+            catch
+            {
+                cboProfesorAsistencia.Items.Clear();
+                cboProfesorAsistencia.Items.Add(new ProfesorFiltroItem(0, "Todos los profesores"));
+                cboProfesorAsistencia.SelectedIndex = 0;
+            }
+        }
+
+        private void CargarAsistenciaProfesores()
+        {
+            if (dtpAsistenciaDesde.Value.Date > dtpAsistenciaHasta.Value.Date)
+            {
+                MessageBox.Show(
+                    "La fecha «Desde» no puede ser posterior a «Hasta».",
+                    "Asistencia profesores",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                var profesorId = cboProfesorAsistencia.SelectedItem is ProfesorFiltroItem item
+                    ? item.IdProfesor
+                    : 0;
+
+                var lista = _reporteDao
+                    .ObtenerAsistenciaProfesores(dtpAsistenciaDesde.Value.Date, dtpAsistenciaHasta.Value.Date, profesorId)
+                    .ToList();
+
+                dgvAsistenciaProfesores.DataSource = lista;
+
+                var desde = dtpAsistenciaDesde.Value.ToString("dd/MM/yyyy");
+                var hasta = dtpAsistenciaHasta.Value.ToString("dd/MM/yyyy");
+                var filtroProfesor = cboProfesorAsistencia.Text;
+
+                if (lista.Count == 0)
+                {
+                    lblResumenAsistencia.Text =
+                        $"Período {desde} — {hasta} · {filtroProfesor}: sin registros de asistencia.";
+                }
+                else
+                {
+                    var promedio = lista.Average(r => r.PorcentajeAsistencia);
+                    lblResumenAsistencia.Text =
+                        $"Período {desde} — {hasta} · {filtroProfesor} — " +
+                        $"{lista.Count} profesor(es) · Promedio asistencia: {promedio:N1}%";
+                }
+
+                ActualizarBotonExportar();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al generar el reporte: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ExportarReporteActual()
+        {
+            var (grilla, titulo) = ObtenerReporteActivo();
+            ExportadorCsv.ExportarGrilla(grilla, titulo);
+        }
+
+        private (DataGridView Grilla, string Titulo) ObtenerReporteActivo()
+        {
+            return tabReportes.SelectedIndex switch
+            {
+                0 => (dgvPorVencer, "cuotas_por_vencer"),
+                1 => (dgvVencidas, "morosos"),
+                2 => (dgvAsistenciaProfesores, "asistencia_profesores"),
+                _ => (dgvPorVencer, "reporte")
+            };
+        }
+
+        private void ActualizarBotonExportar()
+        {
+            var grilla = ObtenerReporteActivo().Grilla;
+            btnExportar.Enabled = grilla.Rows.Count > 0;
         }
 
         /// <summary>
@@ -322,6 +596,15 @@ namespace TP_ClubDeportivo.Forms
 
         private void ActualizarBotonCobrar()
         {
+            var esTabCuotas = tabReportes.SelectedIndex is 0 or 1;
+            btnCobrarSeleccion.Visible = esTabCuotas;
+
+            if (!esTabCuotas)
+            {
+                btnCobrarSeleccion.Enabled = false;
+                return;
+            }
+
             var grilla = tabReportes.SelectedIndex == 0 ? dgvPorVencer : dgvVencidas;
             btnCobrarSeleccion.Enabled = grilla.CurrentRow?.DataBoundItem is CuotaReporte;
         }
@@ -372,6 +655,8 @@ namespace TP_ClubDeportivo.Forms
                 lblResumenPorVencer.Text = lista.Count == 0
                     ? $"No hay cuotas por vencer en los próximos {dias} días."
                     : $"Total: {lista.Count} cuota(s) por vencer — Monto acumulado: {FormatearMonto(totalMonto)}";
+
+                ActualizarBotonExportar();
             }
             catch (Exception ex)
             {
@@ -400,10 +685,36 @@ namespace TP_ClubDeportivo.Forms
                     : $"Total: {lista.Count} cuota(s) vencida(s) — Deuda acumulada: {FormatearMonto(totalMonto)}";
 
                 AplicarEstiloFilasVencidas();
+                ActualizarBotonExportar();
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al generar el reporte: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ConfigurarColumnasAsistencia()
+        {
+            if (dgvAsistenciaProfesores.Columns.Count == 0)
+            {
+                return;
+            }
+
+            OcultarColumna(dgvAsistenciaProfesores, "IdProfesor");
+
+            AplicarColumnasComunes(dgvAsistenciaProfesores, new Dictionary<string, string>
+            {
+                ["ProfesorNombre"] = "Profesor",
+                ["Especialidad"] = "Especialidad",
+                ["TotalRegistros"] = "Registros",
+                ["Asistencias"] = "Presentes",
+                ["Inasistencias"] = "Ausentes",
+                ["PorcentajeAsistencia"] = "% asistencia"
+            });
+
+            if (dgvAsistenciaProfesores.Columns.Contains("PorcentajeAsistencia"))
+            {
+                dgvAsistenciaProfesores.Columns["PorcentajeAsistencia"]!.DefaultCellStyle.Format = "N1";
             }
         }
 
@@ -551,5 +862,12 @@ namespace TP_ClubDeportivo.Forms
 
         private static string FormatearMonto(decimal monto) =>
             monto.ToString("C2", CultureInfo.CurrentCulture);
+
+        private sealed class ProfesorFiltroItem(int idProfesor, string texto)
+        {
+            public int IdProfesor { get; } = idProfesor;
+
+            public override string ToString() => texto;
+        }
     }
 }

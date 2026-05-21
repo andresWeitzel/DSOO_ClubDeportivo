@@ -66,6 +66,41 @@ namespace TP_ClubDeportivo.DAO
             return lista;
         }
 
+        public IEnumerable<AsistenciaProfesorReporte> ObtenerAsistenciaProfesores(
+            DateTime fechaInicio,
+            DateTime fechaFin,
+            int profesorId = 0)
+        {
+            using var connection = _conexionFactory.ObtenerConexion();
+            connection.Open();
+
+            using var command = new MySqlCommand("sp_reporte_asistencias_profesores", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@p_fecha_inicio", fechaInicio.Date);
+            command.Parameters.AddWithValue("@p_fecha_fin", fechaFin.Date);
+            command.Parameters.AddWithValue("@p_profesor_id", profesorId);
+
+            using var reader = command.ExecuteReader();
+            var lista = new List<AsistenciaProfesorReporte>();
+            while (reader.Read())
+            {
+                lista.Add(new AsistenciaProfesorReporte
+                {
+                    IdProfesor = reader.GetInt32("id_profesor"),
+                    ProfesorNombre = reader.GetString("profesor_nombre"),
+                    Especialidad = reader.GetString("especialidad"),
+                    TotalRegistros = reader.GetInt32("total_registros"),
+                    Asistencias = reader.GetInt32("asistencias"),
+                    Inasistencias = reader.GetInt32("inasistencias"),
+                    PorcentajeAsistencia = reader.GetDouble("porcentaje_asistencia")
+                });
+            }
+
+            return lista;
+        }
+
         public ResultadoControlVencimiento? EjecutarControlVencimiento()
         {
             using var connection = _conexionFactory.ObtenerConexion();

@@ -252,7 +252,7 @@ namespace TP_ClubDeportivo.Forms
             AgregarTarjeta(flowTarjetas, "Confeccionar rutina", "Crear rutina según ficha médica del socio.", "Profesores", () => AbrirFormulario<FormRutinas>());
             AgregarTarjeta(flowTarjetas, "Firmar asistencia", "Registrar y firmar asistencia de profesores.", "Profesores", () => AbrirFormulario<FormAsistencias>());
             AgregarTarjeta(flowTarjetas, "Turnos nutrición", "Asignar turnos y actualizar ficha médica en consulta.", "Nutrición", () => AbrirFormulario<FormTurnosNutricion>());
-            AgregarTarjeta(flowTarjetas, "Reportes", "Cuotas por vencer y vencidas para gestión de cobranza.", "Reportes", () => AbrirFormulario<FormReportes>());
+            AgregarTarjeta(flowTarjetas, "Reportes", "Cuotas por vencer, morosos y asistencia de profesores.", "Reportes", () => AbrirFormulario<FormReportes>());
             AgregarTarjeta(flowTarjetas, "Liquidar haberes", "Calcular liquidaciones, emitir recibos y pagar a profesores.", "Personal", () => AbrirFormulario<FormLiquidarHaberes>());
 
             contenedor.Controls.Add(flowTarjetas);

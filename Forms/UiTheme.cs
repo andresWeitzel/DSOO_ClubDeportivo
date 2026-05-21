@@ -41,6 +41,20 @@ namespace TP_ClubDeportivo.Forms
             boton.BackColor = Tarjeta;
             boton.ForeColor = Texto;
             boton.Cursor = Cursors.Hand;
+            boton.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            boton.Padding = new Padding(12, 4, 12, 4);
+        }
+
+        public static void AplicarBotonExito(Button boton)
+        {
+            boton.FlatStyle = FlatStyle.Flat;
+            boton.FlatAppearance.BorderSize = 0;
+            boton.BackColor = Exito;
+            boton.ForeColor = Color.White;
+            boton.Cursor = Cursors.Hand;
+            boton.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold);
+            boton.FlatAppearance.MouseOverBackColor = Color.FromArgb(18, 100, 58);
+            boton.Padding = new Padding(14, 4, 14, 4);
         }
 
         public static void AplicarCampo(TextBox campo)
