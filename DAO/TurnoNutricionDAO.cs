@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
+using System.Linq;
 using MySqlConnector;
 using TP_ClubDeportivo.Data;
 
@@ -8,6 +10,22 @@ namespace TP_ClubDeportivo.DAO
 {
     internal class TurnoNutricionDAO
     {
+        private static readonly TimeSpan[] FranjasNutricion =
+        [
+            new(9, 0, 0), new(9, 30, 0), new(10, 0, 0), new(10, 30, 0),
+            new(11, 0, 0), new(11, 30, 0),
+            new(14, 0, 0), new(14, 30, 0), new(15, 0, 0), new(15, 30, 0),
+            new(16, 0, 0), new(16, 30, 0), new(17, 0, 0)
+        ];
+
+        private static readonly string[] FormatosHora =
+        [
+            @"hh\:mm\:ss",
+            @"h\:mm\:ss",
+            @"hh\:mm",
+            @"h\:mm"
+        ];
+
         private readonly IConexionFactory _conexionFactory;
 
         public TurnoNutricionDAO()
@@ -43,7 +61,7 @@ namespace TP_ClubDeportivo.DAO
                     reader.GetInt32("nutricionista_id"),
                     reader.GetString("nutricionista_nombre"),
                     reader.GetDateTime("fecha"),
-                    reader.GetTimeSpan("hora"),
+                    LeerHora(reader, "hora"),
                     reader.GetString("estado")
                 ));
             }
@@ -74,7 +92,7 @@ namespace TP_ClubDeportivo.DAO
                     reader.GetInt32("nutricionista_id"),
                     reader.GetString("nutricionista_nombre"),
                     reader.GetDateTime("fecha"),
-                    reader.GetTimeSpan("hora"),
+                    LeerHora(reader, "hora"),
                     reader.GetString("estado")
                 ));
             }
@@ -105,12 +123,174 @@ namespace TP_ClubDeportivo.DAO
                     reader.GetInt32("nutricionista_id"),
                     reader.GetString("nutricionista_nombre"),
                     reader.GetDateTime("fecha"),
-                    reader.GetTimeSpan("hora"),
+                    LeerHora(reader, "hora"),
                     reader.GetString("estado")
                 ));
             }
 
             return lista;
+        }
+
+        /// <summary>
+        /// Franjas estándar del consultorio menos las ya reservadas en turnos_nutricion.
+        /// </summary>
+        public IEnumerable<TimeSpan> ObtenerHorariosDisponibles(DateTime fecha, int nutricionistaId)
+        {
+            if (fecha.Date < DateTime.Today)
+            {
+                return Array.Empty<TimeSpan>();
+            }
+
+            try
+            {
+                var ocupados = ConsultarHorariosOcupados(fecha, nutricionistaId)
+                    .Select(NormalizarHora)
+                    .ToHashSet();
+                return FranjasNutricion.Where(hora => !ocupados.Contains(NormalizarHora(hora)));
+            }
+            catch
+            {
+                return FranjasNutricion.ToArray();
+            }
+        }
+
+        public (DateTime? Fecha, IReadOnlyList<TimeSpan> Horarios) BuscarProximoCupo(
+            DateTime desde,
+            int nutricionistaId,
+            int maxDias = 90)
+        {
+            var inicio = desde.Date < DateTime.Today ? DateTime.Today : desde.Date;
+
+            for (var dia = 0; dia <= maxDias; dia++)
+            {
+                var fecha = inicio.AddDays(dia);
+                var horarios = ObtenerHorariosDisponibles(fecha, nutricionistaId).ToList();
+                if (horarios.Count > 0)
+                {
+                    return (fecha, horarios);
+                }
+            }
+
+            return (null, Array.Empty<TimeSpan>());
+        }
+
+        private static TimeSpan NormalizarHora(TimeSpan hora) => new(hora.Hours, hora.Minutes, 0);
+
+        private IEnumerable<TimeSpan> ConsultarHorariosOcupados(DateTime fecha, int nutricionistaId)
+        {
+            using var connection = _conexionFactory.ObtenerConexion();
+            connection.Open();
+
+            using var command = new MySqlCommand(
+                """
+                SELECT TIME_FORMAT(hora, '%H:%i:%s') AS hora_texto
+                FROM turnos_nutricion
+                WHERE nutricionista_id = @nutricionista_id
+                  AND fecha = @fecha
+                  AND estado <> 'CANCELADO'
+                ORDER BY hora ASC
+                """,
+                connection);
+            command.Parameters.AddWithValue("@nutricionista_id", nutricionistaId);
+            command.Parameters.AddWithValue("@fecha", fecha.Date);
+
+            using var reader = command.ExecuteReader();
+
+            var lista = new List<TimeSpan>();
+            while (reader.Read())
+            {
+                var hora = ParseHoraTexto(ObtenerTextoColumna(reader, "hora_texto"));
+                if (hora != TimeSpan.Zero)
+                {
+                    lista.Add(hora);
+                }
+            }
+
+            return lista;
+        }
+
+        public bool ExisteConflictoHorario(int nutricionistaId, DateTime fecha, TimeSpan hora, int? excluirTurnoId = null)
+        {
+            using var connection = _conexionFactory.ObtenerConexion();
+            connection.Open();
+
+            using var command = new MySqlCommand(
+                """
+                SELECT COUNT(*) FROM turnos_nutricion
+                WHERE nutricionista_id = @nutricionista_id
+                  AND fecha = @fecha
+                  AND hora = @hora
+                  AND estado <> 'CANCELADO'
+                  AND (@excluir IS NULL OR id_turno <> @excluir)
+                """,
+                connection);
+            command.Parameters.AddWithValue("@nutricionista_id", nutricionistaId);
+            command.Parameters.AddWithValue("@fecha", fecha.Date);
+            command.Parameters.AddWithValue("@hora", hora);
+            command.Parameters.AddWithValue("@excluir", excluirTurnoId.HasValue ? excluirTurnoId.Value : DBNull.Value);
+
+            var count = command.ExecuteScalar();
+            if (count is null)
+            {
+                return false;
+            }
+
+            return Convert.ToInt64(count, CultureInfo.InvariantCulture) > 0;
+        }
+
+        private static string? ObtenerTextoColumna(MySqlDataReader reader, string columna)
+        {
+            var ordinal = reader.GetOrdinal(columna);
+            if (reader.IsDBNull(ordinal))
+            {
+                return null;
+            }
+
+            var valor = reader.GetValue(ordinal);
+            return valor switch
+            {
+                string s => s,
+                TimeSpan ts => ts.ToString(@"hh\:mm\:ss", CultureInfo.InvariantCulture),
+                DateTime dt => dt.ToString("HH:mm:ss", CultureInfo.InvariantCulture),
+                _ => Convert.ToString(valor, CultureInfo.InvariantCulture)
+            };
+        }
+
+        private static TimeSpan ParseHoraTexto(string? texto)
+        {
+            if (string.IsNullOrWhiteSpace(texto))
+            {
+                return TimeSpan.Zero;
+            }
+
+            var normalizado = texto.Trim();
+            if (TimeSpan.TryParseExact(normalizado, FormatosHora, CultureInfo.InvariantCulture, out var hora))
+            {
+                return hora;
+            }
+
+            if (TimeSpan.TryParse(normalizado, CultureInfo.InvariantCulture, out hora))
+            {
+                return hora;
+            }
+
+            return TimeSpan.Zero;
+        }
+
+        private static TimeSpan LeerHora(MySqlDataReader reader, string columna)
+        {
+            var ordinal = reader.GetOrdinal(columna);
+            if (reader.IsDBNull(ordinal))
+            {
+                return TimeSpan.Zero;
+            }
+
+            if (reader.GetFieldType(ordinal) == typeof(TimeSpan))
+            {
+                return reader.GetTimeSpan(ordinal);
+            }
+
+            return ParseHoraTexto(ObtenerTextoColumna(reader, columna));
         }
 
         public IEnumerable<(int Id, int SocioId, string SocioNombre, DateTime Fecha, TimeSpan Hora)> ObtenerDisponibles(DateTime fecha, int nutricionistaId)
@@ -135,7 +315,7 @@ namespace TP_ClubDeportivo.DAO
                     reader.GetInt32("socio_id"),
                     reader.GetString("socio_nombre"),
                     reader.GetDateTime("fecha"),
-                    reader.GetTimeSpan("hora")
+                    LeerHora(reader, "hora")
                 ));
             }
 
@@ -167,7 +347,7 @@ namespace TP_ClubDeportivo.DAO
             try
             {
                 command.ExecuteNonQuery();
-                if (int.TryParse(outputParam.Value?.ToString(), out var id))
+                if (int.TryParse(outputParam.Value?.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var id))
                 {
                     turnoId = id;
                     return true;

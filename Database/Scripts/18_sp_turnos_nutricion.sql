@@ -17,6 +17,18 @@ CREATE PROCEDURE sp_crear_turno_nutricion(
     OUT p_turno_id INT
 )
 BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM turnos_nutricion
+        WHERE nutricionista_id = p_nutricionista_id
+          AND fecha = p_fecha
+          AND hora = p_hora
+          AND estado <> 'CANCELADO'
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'El horario ya está ocupado para ese nutricionista.';
+    END IF;
+
     INSERT INTO turnos_nutricion (socio_id, nutricionista_id, fecha, hora, estado)
     VALUES (p_socio_id, p_nutricionista_id, p_fecha, p_hora, p_estado);
     
@@ -137,18 +149,72 @@ BEGIN
         t.id_turno,
         t.socio_id,
         CONCAT(s.nombre, ' ', s.apellido) AS socio_nombre,
-        t.nutricionista_id,
-        CONCAT(n.nombre, ' ', n.apellido) AS nutricionista_nombre,
         t.fecha,
-        t.hora,
-        t.estado
+        t.hora
     FROM turnos_nutricion t
     INNER JOIN socios s ON t.socio_id = s.id_socio
-    INNER JOIN nutricionistas n ON t.nutricionista_id = n.id_nutricionista
     WHERE t.fecha = p_fecha
         AND t.nutricionista_id = p_nutricionista_id
         AND t.estado = 'DISPONIBLE'
     ORDER BY t.hora ASC;
+END$$
+
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS sp_obtener_horarios_disponibles_nutricion;
+
+DELIMITER $$
+
+CREATE PROCEDURE sp_obtener_horarios_disponibles_nutricion(
+    IN p_fecha DATE,
+    IN p_nutricionista_id INT
+)
+BEGIN
+    SELECT TIME_FORMAT(h.hora, '%H:%i:%s') AS hora_texto
+    FROM (
+        SELECT TIME('09:00:00') AS hora UNION ALL
+        SELECT TIME('09:30:00') UNION ALL
+        SELECT TIME('10:00:00') UNION ALL
+        SELECT TIME('10:30:00') UNION ALL
+        SELECT TIME('11:00:00') UNION ALL
+        SELECT TIME('11:30:00') UNION ALL
+        SELECT TIME('14:00:00') UNION ALL
+        SELECT TIME('14:30:00') UNION ALL
+        SELECT TIME('15:00:00') UNION ALL
+        SELECT TIME('15:30:00') UNION ALL
+        SELECT TIME('16:00:00') UNION ALL
+        SELECT TIME('16:30:00') UNION ALL
+        SELECT TIME('17:00:00')
+    ) h
+    WHERE p_fecha >= CURDATE()
+      AND NOT EXISTS (
+          SELECT 1
+          FROM turnos_nutricion t
+          WHERE t.nutricionista_id = p_nutricionista_id
+            AND t.fecha = p_fecha
+            AND t.hora = h.hora
+            AND t.estado <> 'CANCELADO'
+      )
+    ORDER BY h.hora ASC;
+END$$
+
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS sp_obtener_horarios_ocupados_nutricion;
+
+DELIMITER $$
+
+CREATE PROCEDURE sp_obtener_horarios_ocupados_nutricion(
+    IN p_fecha DATE,
+    IN p_nutricionista_id INT
+)
+BEGIN
+    SELECT TIME_FORMAT(hora, '%H:%i:%s') AS hora_texto
+    FROM turnos_nutricion
+    WHERE nutricionista_id = p_nutricionista_id
+      AND fecha = p_fecha
+      AND estado <> 'CANCELADO'
+    ORDER BY hora ASC;
 END$$
 
 DELIMITER ;

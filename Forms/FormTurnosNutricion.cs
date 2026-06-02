@@ -54,7 +54,7 @@ namespace TP_ClubDeportivo.Forms
         private readonly ComboBox cbCargaPermitida;
         private readonly Button btnGuardarConsulta;
         private readonly Label lblConsultaMensaje;
-        private bool _autoAdvanceToAvailableDate;
+        private bool _cargandoHorarios;
 
         public FormTurnosNutricion()
         {
@@ -346,6 +346,7 @@ namespace TP_ClubDeportivo.Forms
 
                 UiTheme.ConfigurarSplitVertical(splitCentral, ratioPanel1: 0.38, panel1Min: 240, panel2Min: 320);
                 AjustarAnchoCamposConsulta();
+                CargarNutricionistas();
             };
 
             var panelGrilla = new Panel
@@ -380,11 +381,7 @@ namespace TP_ClubDeportivo.Forms
                 Width = 340,
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
-            cbNutricionistas.SelectedIndexChanged += (_, _) =>
-            {
-                CargarTurnosDisponibles();
-                ActualizarEstadoFormulario();
-            };
+            cbNutricionistas.SelectedIndexChanged += OnNutricionistaCambiado;
 
             panelAsignacion.Controls.Add(new Label
             {
@@ -401,11 +398,7 @@ namespace TP_ClubDeportivo.Forms
                 Format = DateTimePickerFormat.Short,
                 MinDate = DateTime.Today
             };
-            dtpFecha.ValueChanged += (_, _) =>
-            {
-                CargarTurnosDisponibles();
-                ActualizarEstadoFormulario();
-            };
+            dtpFecha.ValueChanged += OnFechaCambiada;
 
             panelAsignacion.Controls.Add(new Label
             {
@@ -439,12 +432,7 @@ namespace TP_ClubDeportivo.Forms
                 Size = new Size(180, 34)
             };
             UiTheme.AplicarBotonSecundario(btnBuscarSiguienteSemana);
-            btnBuscarSiguienteSemana.Click += (_, _) =>
-            {
-                dtpFecha.Value = dtpFecha.Value.AddDays(7);
-                CargarTurnosDisponibles();
-                ActualizarEstadoFormulario();
-            };
+            btnBuscarSiguienteSemana.Click += (_, _) => BuscarProximaFechaDisponible();
 
             btnAsignarTurno = new Button
             {
@@ -478,18 +466,24 @@ namespace TP_ClubDeportivo.Forms
 
             Controls.Add(panelSuperior);
             Controls.Add(panelBusqueda);
+        }
 
-            Load += (_, _) =>
+        private void OnFechaCambiada(object? sender, EventArgs e)
+        {
+            if (_cargandoHorarios)
             {
-                CargarNutricionistas();
-                ActualizarEstadoFormulario();
-            };
+                return;
+            }
+
+            CargarTurnosDisponibles();
+            ActualizarEstadoFormulario();
         }
 
         private void CargarNutricionistas()
         {
             try
             {
+                cbNutricionistas.SelectedIndexChanged -= OnNutricionistaCambiado;
                 var nutricionistas = _nutricionistaDao.ObtenerTodos().ToList();
                 cbNutricionistas.Items.Clear();
 
@@ -502,11 +496,24 @@ namespace TP_ClubDeportivo.Forms
                 {
                     cbNutricionistas.SelectedIndex = 0;
                 }
+
+                CargarTurnosDisponibles();
             }
             catch
             {
                 MessageBox.Show("No se pudieron cargar los nutricionistas. Verifique la conexión a la base de datos.", "Turnos nutrición", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+            finally
+            {
+                cbNutricionistas.SelectedIndexChanged += OnNutricionistaCambiado;
+                ActualizarEstadoFormulario();
+            }
+        }
+
+        private void OnNutricionistaCambiado(object? sender, EventArgs e)
+        {
+            CargarTurnosDisponibles();
+            ActualizarEstadoFormulario();
         }
 
         private void BuscarSocio()
@@ -582,8 +589,119 @@ namespace TP_ClubDeportivo.Forms
             }
         }
 
+        private void BuscarProximaFechaDisponible()
+        {
+            if (cbNutricionistas.SelectedItem is not NutricionistaItem nutricionistaItem)
+            {
+                MessageBox.Show("Seleccione un nutricionista.", "Turnos nutrición", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            try
+            {
+                var fechaActual = dtpFecha.Value.Date;
+                if (fechaActual < DateTime.Today)
+                {
+                    AsegurarFechaNoPasada();
+                    fechaActual = dtpFecha.Value.Date;
+                }
+
+                var horariosHoy = _turnoDao.ObtenerHorariosDisponibles(fechaActual, nutricionistaItem.Id).ToList();
+                if (horariosHoy.Count > 0)
+                {
+                    PoblarHorariosDisponibles(fechaActual, horariosHoy);
+                    lblMensaje.Text = $"Hay {horariosHoy.Count} horario(s) el {fechaActual:dd/MM/yyyy}. Seleccione uno y busque un socio.";
+                    lblMensaje.ForeColor = UiTheme.Primario;
+                    ActualizarEstadoFormulario();
+                    return;
+                }
+
+                var inicioBusqueda = fechaActual.AddDays(1);
+                if (inicioBusqueda < DateTime.Today)
+                {
+                    inicioBusqueda = DateTime.Today;
+                }
+
+                var (fecha, horarios) = _turnoDao.BuscarProximoCupo(inicioBusqueda, nutricionistaItem.Id);
+                if (fecha is null || horarios.Count == 0)
+                {
+                    cbHorasDisponibles.Items.Clear();
+                    cbHorasDisponibles.Text = string.Empty;
+                    lblFechaDisponibles.Text = "Sin horarios libres en los próximos 90 días.";
+                    lblMensaje.Text = "E1: No hay horarios libres en los próximos 90 días para este nutricionista.";
+                    lblMensaje.ForeColor = Color.DarkRed;
+                    ActualizarEstadoFormulario();
+                    return;
+                }
+
+                dtpFecha.ValueChanged -= OnFechaCambiada;
+                dtpFecha.Value = fecha.Value;
+                dtpFecha.ValueChanged += OnFechaCambiada;
+
+                PoblarHorariosDisponibles(fecha.Value, horarios);
+                lblMensaje.Text = $"Próximo cupo: {fecha.Value:dd/MM/yyyy} a las {FormatearHora(horarios[0])} ({horarios.Count} horario(s)). Busque un socio para asignar.";
+                lblMensaje.ForeColor = UiTheme.Primario;
+                ActualizarEstadoFormulario();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"No se pudo buscar la próxima fecha disponible.{Environment.NewLine}{Environment.NewLine}Detalle: {ex.Message}",
+                    "Turnos nutrición",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
+        private void AsegurarFechaNoPasada()
+        {
+            if (dtpFecha.Value.Date >= DateTime.Today)
+            {
+                return;
+            }
+
+            dtpFecha.ValueChanged -= OnFechaCambiada;
+            dtpFecha.Value = DateTime.Today;
+            dtpFecha.ValueChanged += OnFechaCambiada;
+        }
+
+        private void PoblarHorariosDisponibles(DateTime fecha, IReadOnlyList<TimeSpan> horarios)
+        {
+            _turnosDisponibles = horarios
+                .Select(h => new TurnoDisponibleViewModel
+                {
+                    Fecha = fecha,
+                    Hora = h
+                })
+                .ToList();
+
+            cbHorasDisponibles.Items.Clear();
+            foreach (var turno in _turnosDisponibles)
+            {
+                cbHorasDisponibles.Items.Add(new TurnoDisponibleItem(turno));
+            }
+
+            if (cbHorasDisponibles.Items.Count > 0)
+            {
+                cbHorasDisponibles.SelectedIndex = 0;
+            }
+            else
+            {
+                cbHorasDisponibles.Text = string.Empty;
+            }
+
+            lblFechaDisponibles.Text = _turnosDisponibles.Count == 0
+                ? $"Sin horarios libres el {fecha:dd/MM/yyyy}"
+                : $"{_turnosDisponibles.Count} horario(s) libre(s) el {fecha:dd/MM/yyyy}";
+        }
+
         private void CargarTurnosDisponibles()
         {
+            if (_cargandoHorarios)
+            {
+                return;
+            }
+
             if (cbNutricionistas.SelectedItem is not NutricionistaItem nutricionistaItem)
             {
                 cbHorasDisponibles.Items.Clear();
@@ -592,76 +710,26 @@ namespace TP_ClubDeportivo.Forms
                 return;
             }
 
+            _cargandoHorarios = true;
             try
             {
+                AsegurarFechaNoPasada();
                 var fechaSeleccionada = dtpFecha.Value.Date;
-                _turnosDisponibles = _turnoDao.ObtenerDisponibles(fechaSeleccionada, nutricionistaItem.Nutricionista.IdNutricionista)
-                    .Select(t => new TurnoDisponibleViewModel
-                    {
-                        Id = t.Id,
-                        Fecha = t.Fecha,
-                        Hora = t.Hora
-                    })
-                    .ToList();
-
+                var horarios = _turnoDao.ObtenerHorariosDisponibles(fechaSeleccionada, nutricionistaItem.Id).ToList();
+                PoblarHorariosDisponibles(fechaSeleccionada, horarios);
+            }
+            catch (Exception ex)
+            {
                 cbHorasDisponibles.Items.Clear();
-                lblFechaDisponibles.Text = $"Turnos disponibles para: {fechaSeleccionada:dd/MM/yyyy}";
-
-                if (_turnosDisponibles.Count == 0)
-                {
-                    var siguienteFecha = BuscarProximaFechaConTurnosDisponibles(fechaSeleccionada, nutricionistaItem.Nutricionista.IdNutricionista);
-                    if (siguienteFecha is not null)
-                    {
-                        _autoAdvanceToAvailableDate = true;
-                        dtpFecha.Value = siguienteFecha.Value;
-                        return;
-                    }
-
-                    cbHorasDisponibles.Text = string.Empty;
-                    lblMensaje.Text = "E1: Sin turnos disponibles para esa fecha. Busque la próxima fecha.";
-                    lblMensaje.ForeColor = Color.DarkRed;
-                    btnAsignarTurno.Enabled = false;
-                    return;
-                }
-
-                foreach (var turno in _turnosDisponibles)
-                {
-                    cbHorasDisponibles.Items.Add(new TurnoDisponibleItem(turno));
-                }
-
-                cbHorasDisponibles.SelectedIndex = 0;
-
-                if (_autoAdvanceToAvailableDate)
-                {
-                    lblMensaje.Text = $"Fecha ajustada automáticamente a {fechaSeleccionada:dd/MM/yyyy}. Seleccione la hora disponible.";
-                    lblMensaje.ForeColor = UiTheme.Primario;
-                    _autoAdvanceToAvailableDate = false;
-                }
-                else
-                {
-                    lblMensaje.Text = "Seleccione la hora disponible y asigne el turno.";
-                    lblMensaje.ForeColor = UiTheme.TextoSecundario;
-                }
+                cbHorasDisponibles.Text = string.Empty;
+                lblFechaDisponibles.Text = "Turnos disponibles para: -";
+                System.Diagnostics.Debug.WriteLine($"CargarTurnosDisponibles: {ex}");
             }
-            catch
+            finally
             {
-                MessageBox.Show("No se pudieron cargar los turnos disponibles. Verifique la conexión.", "Turnos nutrición", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _cargandoHorarios = false;
+                ActualizarEstadoFormulario();
             }
-        }
-
-        private DateTime? BuscarProximaFechaConTurnosDisponibles(DateTime fechaInicial, int nutricionistaId)
-        {
-            for (var dias = 1; dias <= 14; dias++)
-            {
-                var fecha = fechaInicial.AddDays(dias);
-                var turnos = _turnoDao.ObtenerDisponibles(fecha, nutricionistaId);
-                if (turnos.Any())
-                {
-                    return fecha;
-                }
-            }
-
-            return null;
         }
 
         private void AsignarTurno()
@@ -686,7 +754,23 @@ namespace TP_ClubDeportivo.Forms
 
             try
             {
-                if (_turnoDao.Crear(_socioSeleccionado.IdSocio, nutricionistaItem.Nutricionista.IdNutricionista, dtpFecha.Value.Date, turnoItem.Turno.Hora, "CONFIRMADO", out _))
+                var fecha = dtpFecha.Value.Date;
+                var nutricionistaId = nutricionistaItem.Id;
+                var hora = turnoItem.Turno.Hora;
+
+                if (_turnoDao.ExisteConflictoHorario(nutricionistaId, fecha, hora))
+                {
+                    MessageBox.Show(
+                        "E1: El horario seleccionado ya no está disponible. Elija otra hora o fecha.",
+                        "Turnos nutrición",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                    CargarTurnosDisponibles();
+                    ActualizarEstadoFormulario();
+                    return;
+                }
+
+                if (_turnoDao.Crear(_socioSeleccionado.IdSocio, nutricionistaId, fecha, hora, "CONFIRMADO", out _))
                 {
                     MessageBox.Show(
                         "Turno asignado. Selecciónelo en la grilla para registrar la consulta y actualizar la ficha médica.",
@@ -791,7 +875,7 @@ namespace TP_ClubDeportivo.Forms
             {
                 lblConsultaMensaje.Text = turnoSeleccionado.Estado.Equals("ATENDIDO", StringComparison.OrdinalIgnoreCase)
                     ? $"Turno {turnoSeleccionado.Fecha:dd/MM/yyyy} ya atendido. Puede actualizar la ficha."
-                    : $"Turno {turnoSeleccionado.Fecha:dd/MM/yyyy} {turnoSeleccionado.Hora:hh\\:mm} — actualice la ficha y guarde.";
+                    : $"Turno {turnoSeleccionado.Fecha:dd/MM/yyyy} {FormatearHora(turnoSeleccionado.Hora)} — actualice la ficha y guarde.";
                 lblConsultaMensaje.ForeColor = UiTheme.Primario;
                 return;
             }
@@ -889,9 +973,23 @@ namespace TP_ClubDeportivo.Forms
         {
             if (_socioSeleccionado is null)
             {
-                lblMensaje.Text = "Busque un socio para continuar.";
-                lblMensaje.ForeColor = UiTheme.TextoSecundario;
                 btnAsignarTurno.Enabled = false;
+                if (cbHorasDisponibles.Items.Count > 0)
+                {
+                    lblMensaje.Text = $"{cbHorasDisponibles.Items.Count} horario(s) disponible(s). Busque un socio para continuar.";
+                    lblMensaje.ForeColor = UiTheme.Primario;
+                }
+                else if (cbNutricionistas.SelectedItem is NutricionistaItem)
+                {
+                    lblMensaje.Text = "E1: Sin horarios libres en esta fecha. Use «Buscar próxima fecha» o elija otra.";
+                    lblMensaje.ForeColor = Color.DarkRed;
+                }
+                else
+                {
+                    lblMensaje.Text = "Seleccione nutricionista y fecha para ver horarios disponibles.";
+                    lblMensaje.ForeColor = UiTheme.TextoSecundario;
+                }
+
                 return;
             }
 
@@ -914,7 +1012,7 @@ namespace TP_ClubDeportivo.Forms
 
             if (cbHorasDisponibles.SelectedItem is not TurnoDisponibleItem)
             {
-                lblMensaje.Text = "Seleccione una hora disponible.";
+                lblMensaje.Text = "E1: No hay horarios libres en esta fecha. Elija otra fecha.";
                 lblMensaje.ForeColor = Color.DarkRed;
                 btnAsignarTurno.Enabled = false;
                 return;
@@ -987,15 +1085,21 @@ namespace TP_ClubDeportivo.Forms
 
         private sealed class NutricionistaItem
         {
+            public int Id { get; }
+
             public (int IdNutricionista, string DNI, string Nombre, string Apellido, string Telefono, string Email, string Matricula) Nutricionista { get; }
 
             public NutricionistaItem((int Id, string DNI, string Nombre, string Apellido, string Telefono, string Email, string Matricula) nutricionista)
             {
+                Id = nutricionista.Id;
                 Nutricionista = nutricionista;
             }
 
             public override string ToString() => $"{Nutricionista.Nombre} {Nutricionista.Apellido} ({Nutricionista.Matricula})";
         }
+
+        private static string FormatearHora(TimeSpan hora) =>
+            $"{hora.Hours:D2}:{hora.Minutes:D2}";
 
         private sealed class TurnoDisponibleItem
         {
@@ -1006,12 +1110,11 @@ namespace TP_ClubDeportivo.Forms
                 Turno = turno;
             }
 
-            public override string ToString() => Turno.Hora.ToString(@"hh\:mm");
+            public override string ToString() => FormatearHora(Turno.Hora);
         }
 
         private sealed class TurnoDisponibleViewModel
         {
-            public int Id { get; set; }
             public DateTime Fecha { get; set; }
             public TimeSpan Hora { get; set; }
         }
