@@ -44,43 +44,50 @@ namespace TP_ClubDeportivo.Forms
             var panelSuperior = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 230,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 BackColor = UiTheme.Tarjeta,
                 Padding = new Padding(24)
             };
 
-            var lblTitulo = new Label
+            var layoutSuperior = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                ColumnCount = 1
+            };
+            layoutSuperior.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
+            void AgregarFilaSuperior(Control control)
+            {
+                var fila = layoutSuperior.RowCount;
+                layoutSuperior.RowCount++;
+                layoutSuperior.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                control.Dock = DockStyle.Top;
+                layoutSuperior.Controls.Add(control, 0, fila);
+            }
+
+            AgregarFilaSuperior(new Label
             {
                 Text = "Confeccionar rutina para socio",
                 Font = new Font("Segoe UI", 18F, FontStyle.Bold),
                 ForeColor = UiTheme.Texto,
                 AutoSize = true,
-                Location = new Point(0, 0)
-            };
+                Margin = new Padding(0, 0, 0, 6)
+            });
 
-            var lblDescripcion = new Label
+            AgregarFilaSuperior(new Label
             {
                 Text = "Busque un socio por DNI, verifique su estado de cuota y ficha médica, y registre la rutina.",
                 Font = UiTheme.FuenteSubtitulo,
                 ForeColor = UiTheme.TextoSecundario,
                 AutoSize = true,
-                Location = new Point(0, 38)
-            };
+                MaximumSize = new Size(900, 0),
+                Margin = new Padding(0, 0, 0, 12)
+            });
 
-            var lblDni = new Label
-            {
-                Text = "DNI del socio:",
-                AutoSize = true,
-                Location = new Point(0, 92),
-                Font = UiTheme.FuenteNormal,
-                ForeColor = UiTheme.Texto
-            };
-
-            txtDni = new TextBox
-            {
-                Width = 220,
-                Location = new Point(0, 116)
-            };
+            txtDni = new TextBox { PlaceholderText = "Ej: 12345678" };
             UiTheme.AplicarCampo(txtDni);
             txtDni.KeyDown += (_, e) =>
             {
@@ -92,53 +99,54 @@ namespace TP_ClubDeportivo.Forms
                 }
             };
 
-            btnBuscarSocio = new Button
-            {
-                Text = "Buscar socio",
-                AutoSize = true,
-                Location = new Point(244, 112)
-            };
-            UiTheme.AplicarBotonPrimario(btnBuscarSocio);
+            btnBuscarSocio = new Button { Text = "Buscar socio" };
+            UiTheme.AjustarBotonToolbar(btnBuscarSocio, primario: true);
             btnBuscarSocio.Click += (_, _) => BuscarSocio();
 
-            btnLimpiarBusqueda = new Button
-            {
-                Text = "Limpiar",
-                AutoSize = true,
-                Location = new Point(356, 112)
-            };
-            UiTheme.AplicarBotonSecundario(btnLimpiarBusqueda);
+            btnLimpiarBusqueda = new Button { Text = "Limpiar" };
+            UiTheme.AjustarBotonToolbar(btnLimpiarBusqueda);
             btnLimpiarBusqueda.Click += (_, _) => LimpiarBusqueda();
+
+            var filaBusqueda = UiTheme.CrearPanelBusqueda(
+                "DNI del socio:",
+                txtDni,
+                [btnBuscarSocio, btnLimpiarBusqueda]);
+            filaBusqueda.Dock = DockStyle.Top;
+            filaBusqueda.Padding = new Padding(0);
+            filaBusqueda.BackColor = UiTheme.Tarjeta;
+            AgregarFilaSuperior(filaBusqueda);
 
             lblSocio = new Label
             {
                 Text = "Socio: -",
                 AutoSize = true,
-                Location = new Point(0, 150),
                 Font = UiTheme.FuenteNormal,
-                ForeColor = UiTheme.Texto
+                ForeColor = UiTheme.Texto,
+                Margin = new Padding(0, 4, 0, 0)
             };
+            AgregarFilaSuperior(lblSocio);
 
             lblEstadoCuota = new Label
             {
                 Text = "Estado de cuota: -",
                 AutoSize = true,
-                Location = new Point(0, 174),
                 Font = UiTheme.FuenteNormal,
                 ForeColor = UiTheme.Texto
             };
+            AgregarFilaSuperior(lblEstadoCuota);
 
             lblFichaMedica = new Label
             {
                 Text = "Ficha médica: -",
                 AutoSize = true,
                 MaximumSize = new Size(900, 0),
-                Location = new Point(0, 198),
                 Font = UiTheme.FuenteNormal,
-                ForeColor = UiTheme.Texto
+                ForeColor = UiTheme.Texto,
+                Margin = new Padding(0, 0, 0, 4)
             };
+            AgregarFilaSuperior(lblFichaMedica);
 
-            panelSuperior.Controls.AddRange([lblTitulo, lblDescripcion, lblDni, txtDni, btnBuscarSocio, btnLimpiarBusqueda, lblSocio, lblEstadoCuota, lblFichaMedica]);
+            panelSuperior.Controls.Add(layoutSuperior);
 
             var panelRutinas = new Panel
             {
@@ -231,31 +239,40 @@ namespace TP_ClubDeportivo.Forms
             var panelPie = new Panel
             {
                 Dock = DockStyle.Bottom,
-                Height = 72,
-                Padding = new Padding(16, 10, 16, 10),
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Padding = new Padding(16, 12, 16, 12),
                 BackColor = UiTheme.Tarjeta
             };
 
-            btnCrearRutina = new Button
+            var filaPie = new TableLayoutPanel
             {
-                Text = "Guardar rutina",
-                Size = new Size(180, 38),
-                Location = new Point(0, 14),
-                Anchor = AnchorStyles.Left | AnchorStyles.Top
+                Dock = DockStyle.Top,
+                ColumnCount = 2,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink
             };
-            UiTheme.AplicarBotonPrimario(btnCrearRutina);
+            filaPie.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            filaPie.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            filaPie.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+            btnCrearRutina = new Button { Text = "Guardar rutina" };
+            UiTheme.AjustarBotonToolbar(btnCrearRutina, primario: true);
             btnCrearRutina.Click += (_, _) => GuardarRutina();
 
             lblMensaje = new Label
             {
                 Text = "Busque un socio para continuar.",
                 AutoSize = true,
-                Location = new Point(196, 20),
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(12, 10, 0, 0),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 ForeColor = Color.DarkRed
             };
 
-            panelPie.Controls.AddRange([btnCrearRutina, lblMensaje]);
+            filaPie.Controls.Add(btnCrearRutina, 0, 0);
+            filaPie.Controls.Add(lblMensaje, 1, 0);
+            panelPie.Controls.Add(filaPie);
             Controls.Add(panelPie);
             Controls.Add(panelFormulario);
             Controls.Add(panelRutinas);

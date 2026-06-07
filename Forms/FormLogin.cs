@@ -3,11 +3,15 @@ using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using TP_ClubDeportivo;
 using TP_ClubDeportivo.DAO;
+using TP_ClubDeportivo.Data;
 
 namespace TP_ClubDeportivo.Forms
 {
     public class FormLogin : Form
     {
+        private const int AnchoCampos = 380;
+        private const int AltoCampo = 32;
+
         private static readonly string ArchivoUsuarioRecordado = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "TP_ClubDeportivo",
@@ -20,7 +24,6 @@ namespace TP_ClubDeportivo.Forms
         private readonly Button btnTogglePassword;
         private readonly CheckBox chkRecordarUsuario;
         private readonly Label lblError;
-        private readonly Panel panelCard;
 
         public FormLogin()
         {
@@ -28,19 +31,35 @@ namespace TP_ClubDeportivo.Forms
             StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
-            ClientSize = new Size(820, 480);
-            MinimumSize = new Size(820, 480);
+            ClientSize = new Size(820, 560);
+            MinimumSize = new Size(820, 560);
             BackColor = UiTheme.Fondo;
             Font = UiTheme.FuenteNormal;
             DoubleBuffered = true;
+            AutoScaleMode = AutoScaleMode.Font;
 
             var panelIzquierdo = new Panel
             {
                 Dock = DockStyle.Left,
-                Width = 340,
+                Width = 300,
                 BackColor = UiTheme.Primario
             };
             panelIzquierdo.Paint += PanelIzquierdo_Paint;
+
+            var panelPieSidebar = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 56,
+                BackColor = Color.Transparent
+            };
+            panelPieSidebar.Controls.Add(new Label
+            {
+                Text = "v1.0 — TP Desarrollo de Sistemas",
+                ForeColor = Color.FromArgb(180, 210, 245),
+                Font = new Font("Segoe UI", 8.5F),
+                AutoSize = true,
+                Location = new Point(32, 16)
+            });
 
             var lblMarca = new Label
             {
@@ -53,155 +72,223 @@ namespace TP_ClubDeportivo.Forms
 
             var lblTagline = new Label
             {
-                Text = "Sistema de gestión integral\nSocios · Cuotas · Personal · Nutrición",
+                Text = "Sistema de gestión integral",
                 ForeColor = Color.FromArgb(220, 235, 255),
-                Font = new Font("Segoe UI", 10.5F),
+                Font = new Font("Segoe UI", 11F),
                 AutoSize = true,
-                Location = new Point(32, 100)
+                Location = new Point(32, 96)
             };
 
-            var lblVersion = new Label
+            var lblModulos = new Label
             {
-                Text = "v1.0 — TP Desarrollo de Sistemas",
-                ForeColor = Color.FromArgb(180, 210, 245),
-                Font = new Font("Segoe UI", 8.5F),
+                Text = "Socios · Cuotas · Personal · Nutrición",
+                ForeColor = Color.FromArgb(200, 220, 245),
+                Font = new Font("Segoe UI", 9.5F),
                 AutoSize = true,
-                Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
-                Location = new Point(32, 420)
+                Location = new Point(32, 126)
             };
 
-            panelIzquierdo.Controls.AddRange([lblMarca, lblTagline, lblVersion]);
+            panelIzquierdo.Controls.AddRange([lblMarca, lblTagline, lblModulos, panelPieSidebar]);
 
-            panelCard = new Panel
+            var panelDerecho = new Panel { Dock = DockStyle.Fill, BackColor = UiTheme.Fondo };
+
+            var layout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                Padding = new Padding(48, 40, 48, 24),
-                BackColor = UiTheme.Fondo
+                Padding = new Padding(48, 40, 48, 32),
+                BackColor = UiTheme.Fondo,
+                ColumnCount = 1,
+                AutoSize = false
             };
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
-            var lblTitulo = new Label
+            AgregarFilaAuto(layout, new Label
             {
                 Text = "Iniciar sesión",
                 Font = UiTheme.FuenteTitulo,
                 ForeColor = UiTheme.Texto,
                 AutoSize = true,
-                Location = new Point(0, 0)
-            };
+                Margin = new Padding(0, 0, 0, 8)
+            });
 
-            var lblSubtitulo = new Label
+            AgregarFilaAuto(layout, new Label
             {
                 Text = "Ingrese sus credenciales para acceder al sistema.",
                 Font = UiTheme.FuenteSubtitulo,
                 ForeColor = UiTheme.TextoSecundario,
                 AutoSize = true,
-                Location = new Point(0, 38)
-            };
-
-            var lblUsuario = new Label
-            {
-                Text = "Usuario",
-                ForeColor = UiTheme.Texto,
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-                AutoSize = true,
-                Location = new Point(0, 88)
-            };
+                MaximumSize = new Size(AnchoCampos, 0),
+                Margin = new Padding(0, 0, 0, 20)
+            });
 
             txtUsername = new TextBox
             {
-                Location = new Point(0, 110),
-                Size = new Size(380, 32),
+                Height = AltoCampo,
                 PlaceholderText = "Ej: admin"
             };
             UiTheme.AplicarCampo(txtUsername);
-
-            var lblPassword = new Label
-            {
-                Text = "Contraseña",
-                ForeColor = UiTheme.Texto,
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-                AutoSize = true,
-                Location = new Point(0, 158)
-            };
+            AgregarFilaAuto(layout, UiTheme.CrearCampoVertical("Usuario", txtUsername));
 
             txtPassword = new TextBox
             {
-                Location = new Point(0, 180),
-                Size = new Size(328, 32),
+                Height = AltoCampo,
                 UseSystemPasswordChar = true,
                 PlaceholderText = "Ingrese su contraseña"
             };
             UiTheme.AplicarCampo(txtPassword);
 
-            btnTogglePassword = new Button
-            {
-                Text = "Ver",
-                Location = new Point(336, 180),
-                Size = new Size(84, 32),
-                TabStop = false
-            };
+            btnTogglePassword = new Button { Text = "Ver", TabStop = false };
             UiTheme.AplicarBotonSecundario(btnTogglePassword);
+            btnTogglePassword.MinimumSize = new Size(92, AltoCampo);
             btnTogglePassword.Click += BtnTogglePassword_Click;
+            AgregarFilaAuto(layout, UiTheme.CrearCampoVertical("Contraseña", txtPassword, btnTogglePassword));
 
             chkRecordarUsuario = new CheckBox
             {
                 Text = "Recordar usuario",
-                Location = new Point(0, 224),
                 AutoSize = true,
-                ForeColor = UiTheme.TextoSecundario
+                ForeColor = UiTheme.TextoSecundario,
+                Margin = new Padding(0, 8, 0, 0)
             };
+            AgregarFilaAuto(layout, chkRecordarUsuario);
 
             lblError = new Label
             {
-                Location = new Point(0, 252),
-                Size = new Size(420, 40),
                 ForeColor = UiTheme.Error,
-                Visible = false
+                AutoSize = true,
+                MaximumSize = new Size(AnchoCampos, 0),
+                Visible = false,
+                Margin = new Padding(0, 10, 0, 0)
             };
+            AgregarFilaAuto(layout, lblError);
+
+            var panelBotones = new TableLayoutPanel
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                ColumnCount = 1,
+                RowCount = 3,
+                Dock = DockStyle.Top,
+                Margin = new Padding(0, 16, 0, 0),
+                MaximumSize = new Size(AnchoCampos, 0)
+            };
+            panelBotones.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            panelBotones.RowStyles.Add(new RowStyle(SizeType.Absolute, 46F));
+            panelBotones.RowStyles.Add(new RowStyle(SizeType.Absolute, 10F));
+            panelBotones.RowStyles.Add(new RowStyle(SizeType.Absolute, 44F));
 
             btnLogin = new Button
             {
                 Text = "Ingresar",
-                Location = new Point(0, 300),
-                Size = new Size(420, 44)
+                Dock = DockStyle.Fill
             };
             UiTheme.AplicarBotonPrimario(btnLogin);
             btnLogin.Click += BtnLogin_Click;
 
+            var panelAcciones = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 1,
+                Margin = new Padding(0)
+            };
+            panelAcciones.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 58F));
+            panelAcciones.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42F));
+            panelAcciones.RowStyles.Add(new RowStyle(SizeType.Absolute, 44F));
+
             btnTestConexion = new Button
             {
-                Text = "Probar conexión a la base de datos",
-                Location = new Point(0, 356),
-                Size = new Size(420, 36)
+                Text = "Probar conexión",
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 0, 8, 0)
             };
             UiTheme.AplicarBotonSecundario(btnTestConexion);
             btnTestConexion.Click += BtnTestConexion_Click;
 
-            panelCard.Controls.AddRange([
-                lblTitulo, lblSubtitulo, lblUsuario, txtUsername,
-                lblPassword, txtPassword, btnTogglePassword,
-                chkRecordarUsuario, lblError, btnLogin, btnTestConexion
-            ]);
+            var btnCambiarConexion = new Button
+            {
+                Text = "Cambiar MySQL",
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0)
+            };
+            UiTheme.AplicarBotonSecundario(btnCambiarConexion);
+            btnCambiarConexion.Click += BtnCambiarConexion_Click;
 
-            Controls.Add(panelCard);
+            panelAcciones.Controls.Add(btnTestConexion, 0, 0);
+            panelAcciones.Controls.Add(btnCambiarConexion, 1, 0);
+            panelBotones.Controls.Add(btnLogin, 0, 0);
+            panelBotones.Controls.Add(panelAcciones, 0, 2);
+            AgregarFilaAuto(layout, panelBotones);
+
+            AgregarFilaEspaciador(layout);
+
+            panelDerecho.Controls.Add(layout);
+
+            Controls.Add(panelDerecho);
             Controls.Add(panelIzquierdo);
 
             AcceptButton = btnLogin;
             txtUsername.KeyDown += Campo_KeyDown;
             txtPassword.KeyDown += Campo_KeyDown;
+            Shown += OnShownInicial;
+        }
 
-            Shown += (_, _) =>
+        private static void AgregarFilaAuto(TableLayoutPanel tabla, Control control)
+        {
+            var fila = tabla.RowCount;
+            tabla.RowCount++;
+            tabla.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            control.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            control.Dock = DockStyle.Top;
+            tabla.Controls.Add(control, 0, fila);
+        }
+
+        private static void AgregarFilaEspaciador(TableLayoutPanel tabla)
+        {
+            var fila = tabla.RowCount;
+            tabla.RowCount++;
+            tabla.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            tabla.Controls.Add(new Panel { Dock = DockStyle.Fill, Height = 1 }, 0, fila);
+        }
+
+        private void OnShownInicial(object? sender, EventArgs e)
+        {
+            if (!InicializadorBaseDatos.BaseDeDatosLista())
             {
-                CargarUsuarioRecordado();
-                txtUsername.Focus();
-                if (string.IsNullOrEmpty(txtUsername.Text))
+                var reintentar = MessageBox.Show(
+                    "La base de datos «db_club_deportivo» no está disponible.\n\n" +
+                    "¿Desea crearla e inicializarla ahora?",
+                    "Club Deportivo",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning);
+
+                if (reintentar == DialogResult.Yes)
                 {
-                    txtUsername.Select();
+                    using var inicializacion = new FormInicializacionBaseDatos();
+                    if (inicializacion.ShowDialog() != DialogResult.OK)
+                    {
+                        Close();
+                        return;
+                    }
                 }
                 else
                 {
-                    txtPassword.Focus();
+                    MostrarError(
+                        "Base de datos no disponible.\n" +
+                        "Use «Probar conexión» o reinicie la aplicación.");
                 }
-            };
+            }
+
+            CargarUsuarioRecordado();
+            txtUsername.Focus();
+            if (string.IsNullOrEmpty(txtUsername.Text))
+            {
+                txtUsername.Select();
+            }
+            else
+            {
+                txtPassword.Focus();
+            }
         }
 
         private static void PanelIzquierdo_Paint(object? sender, PaintEventArgs e)
@@ -302,11 +389,25 @@ namespace TP_ClubDeportivo.Forms
             }
             catch (Exception ex)
             {
-                MostrarError($"No se pudo conectar al sistema.\n{ex.Message}");
+                var datos = Conexion.ObtenerDatosInstalacion();
+                var resumenDatos = datos is not null
+                    ? "\n\nDatos de conexión:\n" + datos.ResumenTexto
+                    : string.Empty;
+                MostrarError($"No se pudo conectar al sistema.\n{ex.Message}{resumenDatos}");
             }
             finally
             {
                 EstablecerCargando(false);
+            }
+        }
+
+        private void BtnCambiarConexion_Click(object? sender, EventArgs e)
+        {
+            using var configuracion = new FormConfiguracionConexion();
+            if (configuracion.ShowDialog() == DialogResult.OK)
+            {
+                OcultarError();
+                MostrarMensaje("Datos de conexión actualizados. Pruebe la conexión antes de ingresar.", true);
             }
         }
 
@@ -317,14 +418,33 @@ namespace TP_ClubDeportivo.Forms
 
             try
             {
-                var ok = new UsuarioDAO().TestConexion();
-                MostrarMensaje(
-                    ok ? "Conexión a la base de datos establecida correctamente." : "No se pudo conectar. Verifique que MySQL esté en ejecución.",
-                    ok);
+                var datos = Conexion.ObtenerDatosInstalacion();
+                var resumenDatos = datos?.ResumenTexto ?? "No hay datos de conexión configurados.";
+
+                var ok = Conexion.ProbarConexionActual(out var detalle);
+                if (ok)
+                {
+                    MessageBox.Show(
+                        "Conexión a la base de datos establecida correctamente.\n\n" +
+                        "Datos configurados:\n" + resumenDatos,
+                        "Club Deportivo",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                    MostrarMensaje("Conexión OK. Puede iniciar sesión.", true);
+                }
+                else
+                {
+                    MostrarError(
+                        "No se pudo conectar al servidor.\n\n" +
+                        "Datos configurados:\n" + resumenDatos + "\n\n" +
+                        "Detalle: " + detalle);
+                }
             }
             catch (Exception ex)
             {
-                MostrarError($"Error de conexión: {ex.Message}");
+                var datos = Conexion.ObtenerDatosInstalacion();
+                var resumenDatos = datos?.ResumenTexto ?? "No hay datos de conexión configurados.";
+                MostrarError($"Error de conexión: {ex.Message}\n\nDatos configurados:\n{resumenDatos}");
             }
             finally
             {

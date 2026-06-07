@@ -228,5 +228,211 @@ namespace TP_ClubDeportivo.Forms
                 LinearGradientMode.Vertical);
             e.Graphics.FillRectangle(brush, panel.ClientRectangle);
         }
+
+        public static void AjustarBotonToolbar(Button boton, bool primario = false)
+        {
+            if (primario)
+            {
+                AplicarBotonPrimario(boton);
+            }
+            else
+            {
+                AplicarBotonSecundario(boton);
+            }
+
+            boton.AutoSize = true;
+            boton.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            boton.MinimumSize = new Size(104, 36);
+            boton.Padding = new Padding(14, 6, 14, 6);
+            boton.Margin = new Padding(0, 0, 8, 0);
+        }
+
+        public static TableLayoutPanel CrearFilaBusqueda(Control campo, params Button[] botones)
+        {
+            var tabla = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1 + botones.Length,
+                RowCount = 1,
+                Margin = new Padding(0),
+                AutoSize = false
+            };
+            tabla.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            foreach (var _ in botones)
+            {
+                tabla.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            }
+
+            tabla.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+
+            campo.Dock = DockStyle.Fill;
+            campo.Margin = new Padding(0, 0, 8, 0);
+            tabla.Controls.Add(campo, 0, 0);
+
+            for (var i = 0; i < botones.Length; i++)
+            {
+                var boton = botones[i];
+                boton.Margin = i < botones.Length - 1
+                    ? new Padding(0, 0, 8, 0)
+                    : new Padding(0);
+                tabla.Controls.Add(boton, i + 1, 0);
+            }
+
+            return tabla;
+        }
+
+        public static Panel CrearPanelBusqueda(
+            string etiqueta,
+            Control campo,
+            IReadOnlyList<Button> botones,
+            params Control[] filasInferiores)
+        {
+            var panel = new Panel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Padding = new Padding(12, 10, 12, 10),
+                BackColor = Tarjeta
+            };
+
+            var layout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                ColumnCount = 1,
+                Margin = new Padding(0)
+            };
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
+            var filaSuperior = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                ColumnCount = 2,
+                Margin = new Padding(0, 0, 0, 8)
+            };
+            filaSuperior.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            filaSuperior.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            filaSuperior.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+            var lbl = new Label
+            {
+                Text = etiqueta,
+                AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 10, 12, 0),
+                Font = FuenteNormal
+            };
+
+            var filaCampo = CrearFilaBusqueda(campo, botones.ToArray());
+            filaCampo.Dock = DockStyle.Fill;
+            filaCampo.Height = 38;
+
+            filaSuperior.Controls.Add(lbl, 0, 0);
+            filaSuperior.Controls.Add(filaCampo, 1, 0);
+            AgregarFilaAuto(layout, filaSuperior);
+
+            foreach (var control in filasInferiores)
+            {
+                control.Dock = DockStyle.Top;
+                control.Margin = new Padding(0, 0, 0, 4);
+                AgregarFilaAuto(layout, control);
+            }
+
+            panel.Controls.Add(layout);
+            panel.Paint += (_, e) =>
+            {
+                using var pen = new Pen(Borde);
+                e.Graphics.DrawLine(pen, 0, panel.Height - 1, panel.Width, panel.Height - 1);
+            };
+
+            return panel;
+        }
+
+        public static FlowLayoutPanel CrearBarraBotones(params Button[] botones)
+        {
+            var panel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = true,
+                Padding = new Padding(4, 12, 4, 4),
+                Margin = new Padding(0)
+            };
+
+            foreach (var boton in botones)
+            {
+                boton.MinimumSize = new Size(96, 38);
+                boton.Margin = new Padding(0, 0, 8, 8);
+                panel.Controls.Add(boton);
+            }
+
+            return panel;
+        }
+
+        public static TableLayoutPanel CrearCampoVertical(string etiqueta, Control campo, Control? extra = null)
+        {
+            var contenedor = new TableLayoutPanel
+            {
+                ColumnCount = 1,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Dock = DockStyle.Top,
+                Margin = new Padding(0, 0, 0, 10)
+            };
+            contenedor.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            contenedor.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+            contenedor.Controls.Add(new Label
+            {
+                Text = etiqueta,
+                ForeColor = Texto,
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                AutoSize = true,
+                Margin = new Padding(0, 0, 0, 6)
+            }, 0, 0);
+
+            if (extra is null)
+            {
+                campo.Dock = DockStyle.Top;
+                campo.Margin = new Padding(0);
+                contenedor.Controls.Add(campo, 0, 1);
+                return contenedor;
+            }
+
+            var fila = new TableLayoutPanel
+            {
+                ColumnCount = 2,
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Margin = new Padding(0)
+            };
+            fila.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            fila.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 92F));
+            fila.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
+            campo.Dock = DockStyle.Fill;
+            campo.Margin = new Padding(0, 0, 8, 0);
+            extra.Dock = DockStyle.Fill;
+            extra.Margin = new Padding(0);
+            fila.Controls.Add(campo, 0, 0);
+            fila.Controls.Add(extra, 1, 0);
+            contenedor.Controls.Add(fila, 0, 1);
+            return contenedor;
+        }
+
+        private static void AgregarFilaAuto(TableLayoutPanel tabla, Control control)
+        {
+            var fila = tabla.RowCount;
+            tabla.RowCount++;
+            tabla.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            control.Dock = DockStyle.Top;
+            tabla.Controls.Add(control, 0, fila);
+        }
     }
 }

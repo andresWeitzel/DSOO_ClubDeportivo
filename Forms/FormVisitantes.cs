@@ -90,18 +90,20 @@ namespace TP_ClubDeportivo.Forms
             panelModo = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 52,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 BackColor = UiTheme.PrimarioClaro,
-                Padding = new Padding(10, 8, 10, 8)
+                Padding = new Padding(10, 10, 10, 10)
             };
 
             lblModo = new Label
             {
-                Dock = DockStyle.Fill,
+                Dock = DockStyle.Top,
                 ForeColor = UiTheme.PrimarioOscuro,
                 Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
                 Text = "Alta: complete los datos y registre el ingreso con su pago.",
-                TextAlign = ContentAlignment.MiddleLeft
+                AutoSize = true,
+                MaximumSize = new Size(360, 0)
             };
             panelModo.Controls.Add(lblModo);
 
@@ -189,53 +191,28 @@ namespace TP_ClubDeportivo.Forms
             cboMedioPago.SelectedIndex = 0;
             panelCampos.Controls.Add(cboMedioPago);
 
-            var panelBotones = new Panel
-            {
-                Dock = DockStyle.Top,
-                Height = 88,
-                Padding = new Padding(4, 12, 4, 0)
-            };
-
-            btnGuardar = new Button
-            {
-                Text = "Registrar ingreso",
-                Location = new Point(4, 0),
-                Size = new Size(165, 38)
-            };
+            btnGuardar = new Button { Text = "Registrar ingreso" };
             UiTheme.AplicarBotonPrimario(btnGuardar);
             btnGuardar.Click += BtnGuardar_Click;
 
-            btnNuevo = new Button
-            {
-                Text = "Nuevo",
-                Location = new Point(178, 0),
-                Size = new Size(90, 38)
-            };
+            btnNuevo = new Button { Text = "Nuevo" };
             UiTheme.AplicarBotonSecundario(btnNuevo);
             btnNuevo.Click += (_, _) => ModoNuevo();
 
-            btnEliminar = new Button
-            {
-                Text = "Eliminar",
-                Location = new Point(276, 0),
-                Size = new Size(90, 38),
-                Enabled = false
-            };
+            btnEliminar = new Button { Text = "Eliminar", Enabled = false };
             UiTheme.AplicarBotonSecundario(btnEliminar);
             btnEliminar.Click += BtnEliminar_Click;
 
             btnRegistrarPago = new Button
             {
                 Text = "Registrar pago pendiente",
-                Location = new Point(4, 46),
-                Size = new Size(362, 32),
                 Enabled = false,
                 Visible = false
             };
             UiTheme.AplicarBotonSecundario(btnRegistrarPago);
             btnRegistrarPago.Click += BtnRegistrarPago_Click;
 
-            panelBotones.Controls.AddRange([btnGuardar, btnNuevo, btnEliminar, btnRegistrarPago]);
+            var panelBotones = UiTheme.CrearBarraBotones(btnGuardar, btnNuevo, btnEliminar, btnRegistrarPago);
 
             lblMensaje = new Label
             {
@@ -255,7 +232,7 @@ namespace TP_ClubDeportivo.Forms
 
             Load += (_, _) =>
             {
-                UiTheme.ConfigurarSplitVertical(split, 0.58);
+                UiTheme.ConfigurarSplitVertical(split, 0.58, panel1Min: 420, panel2Min: 340);
                 RefrescarActividades();
                 ModoNuevo();
                 CargarVisitantes();

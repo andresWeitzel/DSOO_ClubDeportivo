@@ -1,3 +1,4 @@
+using TP_ClubDeportivo.Data;
 using TP_ClubDeportivo.Forms;
 
 namespace TP_ClubDeportivo;
@@ -10,9 +11,27 @@ static class Program
     [STAThread]
     static void Main()
     {
-        // To customize application configuration such as set high DPI settings or default font,
-        // see https://aka.ms/applicationconfiguration.
         ApplicationConfiguration.Initialize();
+
+        while (true)
+        {
+            using (var configuracion = new FormConfiguracionConexion())
+            {
+                if (configuracion.ShowDialog() != DialogResult.OK)
+                {
+                    return;
+                }
+            }
+
+            using (var inicializacion = new FormInicializacionBaseDatos())
+            {
+                if (inicializacion.ShowDialog() == DialogResult.OK)
+                {
+                    break;
+                }
+            }
+        }
+
         Application.Run(new FormLogin());
-    }    
+    }
 }
