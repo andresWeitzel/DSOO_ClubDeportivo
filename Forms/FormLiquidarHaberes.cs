@@ -52,28 +52,48 @@ namespace TP_ClubDeportivo.Forms
             var panelSuperior = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 228,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 BackColor = UiTheme.Tarjeta,
                 Padding = new Padding(24)
             };
 
-            var lblTitulo = new Label
+            var layoutSuperior = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                ColumnCount = 1
+            };
+            layoutSuperior.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
+            void AgregarFilaSup(Control control)
+            {
+                var fila = layoutSuperior.RowCount;
+                layoutSuperior.RowCount++;
+                layoutSuperior.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                control.Dock = DockStyle.Top;
+                layoutSuperior.Controls.Add(control, 0, fila);
+            }
+
+            AgregarFilaSup(new Label
             {
                 Text = "Liquidación mensual de haberes",
                 Font = new Font("Segoe UI", 18F, FontStyle.Bold),
                 ForeColor = UiTheme.Texto,
                 AutoSize = true,
-                Location = new Point(0, 0)
-            };
+                Margin = new Padding(0, 0, 0, 6)
+            });
 
-            var lblDescripcion = new Label
+            AgregarFilaSup(new Label
             {
                 Text = "Calcule liquidaciones según sueldo base, genere recibos y registre pagos (RF-11: último día hábil del mes).",
                 Font = UiTheme.FuenteSubtitulo,
                 ForeColor = UiTheme.TextoSecundario,
                 AutoSize = true,
-                Location = new Point(0, 38)
-            };
+                MaximumSize = new Size(720, 0),
+                Margin = new Padding(0, 0, 0, 12)
+            });
 
             panelBadgePeriodo = new Panel
             {
@@ -111,22 +131,39 @@ namespace TP_ClubDeportivo.Forms
             panelBadgePeriodo.Controls.AddRange([lblPeriodoDestacado, lblPeriodoCodigo]);
             panelSuperior.Controls.Add(panelBadgePeriodo);
             panelSuperior.Resize += (_, _) =>
-                panelBadgePeriodo.Location = new Point(panelSuperior.Width - panelBadgePeriodo.Width - 28, 72);
+                panelBadgePeriodo.Location = new Point(Math.Max(24, panelSuperior.Width - panelBadgePeriodo.Width - 28), 72);
 
-            panelSuperior.Controls.Add(new Label
+            var filaPeriodo = new TableLayoutPanel
+            {
+                ColumnCount = 6,
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Margin = new Padding(0, 0, 0, 8)
+            };
+            filaPeriodo.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            filaPeriodo.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140F));
+            filaPeriodo.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90F));
+            filaPeriodo.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            filaPeriodo.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            filaPeriodo.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            filaPeriodo.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
+
+            filaPeriodo.Controls.Add(new Label
             {
                 Text = "Período a liquidar:",
-                Location = new Point(0, 84),
                 AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 10, 12, 0),
                 Font = UiTheme.FuenteNormal
-            });
+            }, 0, 0);
 
             cboMes = new ComboBox
             {
-                Location = new Point(130, 80),
-                Width = 130,
+                Dock = DockStyle.Fill,
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Font = UiTheme.FuenteNormal
+                Font = UiTheme.FuenteNormal,
+                Margin = new Padding(0, 4, 8, 0)
             };
             for (var m = 1; m <= 12; m++)
             {
@@ -138,57 +175,55 @@ namespace TP_ClubDeportivo.Forms
                 OcultarBannerLiquidacion();
                 ActualizarEtiquetasPeriodo();
             };
+            filaPeriodo.Controls.Add(cboMes, 1, 0);
 
             numAnio = new NumericUpDown
             {
-                Location = new Point(270, 80),
-                Width = 80,
+                Dock = DockStyle.Fill,
                 Minimum = 2020,
                 Maximum = 2100,
-                Value = DateTime.Today.Year
+                Value = DateTime.Today.Year,
+                Margin = new Padding(0, 4, 12, 0)
             };
             numAnio.ValueChanged += (_, _) =>
             {
                 OcultarBannerLiquidacion();
                 ActualizarEtiquetasPeriodo();
             };
+            filaPeriodo.Controls.Add(numAnio, 2, 0);
 
-            btnCargar = new Button
-            {
-                Text = "Consultar período",
-                Location = new Point(370, 76),
-                Size = new Size(140, 32)
-            };
-            UiTheme.AplicarBotonSecundario(btnCargar);
+            btnCargar = new Button { Text = "Consultar período" };
+            UiTheme.AjustarBotonToolbar(btnCargar);
             btnCargar.Click += (_, _) => CargarPeriodo();
+            filaPeriodo.Controls.Add(btnCargar, 3, 0);
 
-            btnLiquidarMes = new Button
-            {
-                Text = "Liquidar mes",
-                Location = new Point(530, 76),
-                Size = new Size(140, 32)
-            };
-            UiTheme.AplicarBotonPrimario(btnLiquidarMes);
+            btnLiquidarMes = new Button { Text = "Liquidar mes" };
+            UiTheme.AjustarBotonToolbar(btnLiquidarMes, primario: true);
             btnLiquidarMes.Click += (_, _) => LiquidarMes();
+            filaPeriodo.Controls.Add(btnLiquidarMes, 4, 0);
+
+            AgregarFilaSup(filaPeriodo);
 
             lblDiaHabil = new Label
             {
-                Location = new Point(0, 120),
-                Size = new Size(640, 22),
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold)
+                AutoSize = true,
+                MaximumSize = new Size(760, 0),
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                Margin = new Padding(0, 0, 0, 4)
             };
+            AgregarFilaSup(lblDiaHabil);
 
             lblResumen = new Label
             {
-                Location = new Point(0, 148),
-                Size = new Size(640, 36),
+                AutoSize = true,
+                MaximumSize = new Size(760, 0),
                 ForeColor = UiTheme.PrimarioOscuro,
-                Font = UiTheme.FuenteNormal
+                Font = UiTheme.FuenteNormal,
+                Margin = new Padding(0, 0, 0, 4)
             };
+            AgregarFilaSup(lblResumen);
 
-            panelSuperior.Controls.AddRange([
-                lblTitulo, lblDescripcion, cboMes, numAnio, btnCargar, btnLiquidarMes, lblDiaHabil, lblResumen
-            ]);
+            panelSuperior.Controls.Add(layoutSuperior);
 
             panelBannerLiquidacion = new Panel
             {
@@ -265,54 +300,79 @@ namespace TP_ClubDeportivo.Forms
             var panelAccion = new Panel
             {
                 Dock = DockStyle.Bottom,
-                Height = 120,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 BackColor = UiTheme.Tarjeta,
                 Padding = new Padding(24)
             };
 
+            var layoutAccion = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                ColumnCount = 1
+            };
+            layoutAccion.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
             lblDetalle = new Label
             {
-                Location = new Point(0, 8),
-                Size = new Size(700, 36),
+                AutoSize = true,
+                MaximumSize = new Size(900, 0),
                 ForeColor = UiTheme.TextoSecundario,
-                Font = new Font("Segoe UI", 9F)
+                Font = new Font("Segoe UI", 9F),
+                Margin = new Padding(0, 0, 0, 10)
             };
+            layoutAccion.Controls.Add(lblDetalle, 0, 0);
+            layoutAccion.RowCount = 1;
+            layoutAccion.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-            panelAccion.Controls.Add(new Label
+            var filaPago = new TableLayoutPanel
+            {
+                ColumnCount = 4,
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink
+            };
+            filaPago.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            filaPago.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130F));
+            filaPago.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            filaPago.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            filaPago.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
+
+            filaPago.Controls.Add(new Label
             {
                 Text = "Fecha de pago:",
-                Location = new Point(0, 56),
                 AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 10, 8, 0),
                 Font = UiTheme.FuenteNormal
-            });
+            }, 0, 0);
 
             dtpFechaPago = new DateTimePicker
             {
                 Format = DateTimePickerFormat.Short,
-                Location = new Point(100, 52),
-                Width = 120,
-                Value = DateTime.Today
+                Dock = DockStyle.Fill,
+                Value = DateTime.Today,
+                Margin = new Padding(0, 4, 12, 0)
             };
+            filaPago.Controls.Add(dtpFechaPago, 1, 0);
 
-            btnRegistrarPago = new Button
-            {
-                Text = "Registrar pago",
-                Location = new Point(240, 48),
-                Size = new Size(150, 36)
-            };
-            UiTheme.AplicarBotonPrimario(btnRegistrarPago);
+            btnRegistrarPago = new Button { Text = "Registrar pago" };
+            UiTheme.AjustarBotonToolbar(btnRegistrarPago, primario: true);
             btnRegistrarPago.Click += (_, _) => RegistrarPago();
+            filaPago.Controls.Add(btnRegistrarPago, 2, 0);
 
-            btnVerRecibo = new Button
-            {
-                Text = "Ver recibo",
-                Location = new Point(410, 48),
-                Size = new Size(130, 36)
-            };
-            UiTheme.AplicarBotonSecundario(btnVerRecibo);
+            btnVerRecibo = new Button { Text = "Ver recibo" };
+            UiTheme.AjustarBotonToolbar(btnVerRecibo);
             btnVerRecibo.Click += (_, _) => MostrarRecibo();
+            filaPago.Controls.Add(btnVerRecibo, 3, 0);
 
-            panelAccion.Controls.AddRange([lblDetalle, dtpFechaPago, btnRegistrarPago, btnVerRecibo]);
+            layoutAccion.RowCount = 2;
+            layoutAccion.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layoutAccion.Controls.Add(filaPago, 0, 1);
+
+            panelAccion.Controls.Add(layoutAccion);
 
             Controls.Add(panelGrilla);
             Controls.Add(lblTituloGrilla);

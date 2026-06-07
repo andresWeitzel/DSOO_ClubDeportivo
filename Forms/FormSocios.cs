@@ -47,44 +47,30 @@ namespace TP_ClubDeportivo.Forms
 
             var panelGrilla = new Panel { Dock = DockStyle.Fill, Padding = new Padding(8) };
 
-            var panelBuscador = new Panel
-            {
-                Dock = DockStyle.Top,
-                Height = 44,
-                Padding = new Padding(0, 4, 0, 4)
-            };
-
-            txtBuscar = new TextBox
-            {
-                Location = new Point(0, 6),
-                Size = new Size(180, 25),
-                PlaceholderText = "Buscar por DNI"
-            };
+            txtBuscar = new TextBox { PlaceholderText = "Buscar por DNI" };
             UiTheme.AplicarCampo(txtBuscar);
 
-            btnBuscar = new Button
-            {
-                Text = "Buscar",
-                Location = new Point(188, 4),
-                Size = new Size(90, 30)
-            };
-            UiTheme.AplicarBotonSecundario(btnBuscar);
+            btnBuscar = new Button { Text = "Buscar" };
+            UiTheme.AjustarBotonToolbar(btnBuscar);
             btnBuscar.Click += (_, _) => BuscarPorDni();
 
-            btnRefrescar = new Button
-            {
-                Text = "Actualizar",
-                Location = new Point(286, 4),
-                Size = new Size(100, 30)
-            };
-            UiTheme.AplicarBotonSecundario(btnRefrescar);
+            btnRefrescar = new Button { Text = "Actualizar" };
+            UiTheme.AjustarBotonToolbar(btnRefrescar);
             btnRefrescar.Click += (_, _) =>
             {
                 txtBuscar.Clear();
                 CargarSocios();
             };
 
-            panelBuscador.Controls.AddRange([txtBuscar, btnBuscar, btnRefrescar]);
+            var panelBuscador = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 52,
+                Padding = new Padding(0, 4, 0, 8)
+            };
+            var filaBusqueda = UiTheme.CrearFilaBusqueda(txtBuscar, btnBuscar, btnRefrescar);
+            filaBusqueda.Dock = DockStyle.Fill;
+            panelBuscador.Controls.Add(filaBusqueda);
 
             dgvSocios = new DataGridView
             {
@@ -116,17 +102,19 @@ namespace TP_ClubDeportivo.Forms
             panelModo = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 52,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 BackColor = UiTheme.PrimarioClaro,
-                Padding = new Padding(10, 8, 10, 8)
+                Padding = new Padding(10, 10, 10, 10)
             };
             lblModo = new Label
             {
-                Dock = DockStyle.Fill,
+                Dock = DockStyle.Top,
                 ForeColor = UiTheme.PrimarioOscuro,
                 Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
                 Text = "Alta: complete los datos para registrar el socio (CU-01).",
-                TextAlign = ContentAlignment.MiddleLeft
+                AutoSize = true,
+                MaximumSize = new Size(360, 0)
             };
             panelModo.Controls.Add(lblModo);
 
@@ -169,42 +157,19 @@ namespace TP_ClubDeportivo.Forms
             panelCampos.Controls.Add(lblMonto);
             panelCampos.Controls.Add(numMonto);
 
-            var panelBotones = new Panel
-            {
-                Dock = DockStyle.Top,
-                Height = 56,
-                Padding = new Padding(4, 12, 4, 0)
-            };
-
-            btnGuardar = new Button
-            {
-                Text = "Registrar socio",
-                Location = new Point(4, 0),
-                Size = new Size(165, 38)
-            };
+            btnGuardar = new Button { Text = "Registrar socio" };
             UiTheme.AplicarBotonPrimario(btnGuardar);
             btnGuardar.Click += BtnGuardar_Click;
 
-            btnNuevo = new Button
-            {
-                Text = "Nuevo",
-                Location = new Point(178, 0),
-                Size = new Size(90, 38)
-            };
+            btnNuevo = new Button { Text = "Nuevo" };
             UiTheme.AplicarBotonSecundario(btnNuevo);
             btnNuevo.Click += (_, _) => ModoNuevo();
 
-            btnEliminar = new Button
-            {
-                Text = "Eliminar",
-                Location = new Point(276, 0),
-                Size = new Size(90, 38),
-                Enabled = false
-            };
+            btnEliminar = new Button { Text = "Eliminar", Enabled = false };
             UiTheme.AplicarBotonSecundario(btnEliminar);
             btnEliminar.Click += BtnEliminar_Click;
 
-            panelBotones.Controls.AddRange([btnGuardar, btnNuevo, btnEliminar]);
+            var panelBotones = UiTheme.CrearBarraBotones(btnGuardar, btnNuevo, btnEliminar);
 
             lblMensaje = new Label
             {
@@ -224,7 +189,7 @@ namespace TP_ClubDeportivo.Forms
 
             Load += (_, _) =>
             {
-                UiTheme.ConfigurarSplitVertical(split, 0.58);
+                UiTheme.ConfigurarSplitVertical(split, 0.58, panel1Min: 420, panel2Min: 340);
                 ModoNuevo();
                 CargarSocios();
             };

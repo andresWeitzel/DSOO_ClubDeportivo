@@ -57,9 +57,9 @@ El sistema informatiza las operaciones administrativas, deportivas y de salud de
 | RF-03 | Emitir / renovar carnet | Administrador | `FormCarnets` |
 | CU-03 | Cobrar cuota mensual | Administrador | `FormCobroCuota` |
 | CU-04 | Controlar vencimiento de cuotas | Sistema | `FormReportes` + `sp_controlar_vencimiento_cuotas` |
-| CU-05 | Firmar asistencia | Profesor | Pendiente (datos en BD) |
-| CU-06 | Confeccionar rutina | Profesor | Pendiente (datos en BD) |
-| CU-07 | Gestionar turno de nutrición | Admin / Nutricionista | Pendiente (datos en BD) |
+| CU-05 | Firmar asistencia | Profesor | `FormAsistencias` |
+| CU-06 | Confeccionar rutina | Profesor | `FormRutinas` |
+| CU-07 | Gestionar turno de nutrición | Admin / Nutricionista | `FormTurnosNutricion` |
 | CU-08 | Liquidar haberes | Administrador | `FormLiquidarHaberes` |
 | CU-09 | Generar reportes | Administrador / Empleado | `FormReportes` (RF-15, RF-16; RF-17 solo Administrador) |
 
@@ -82,7 +82,14 @@ La UI filtra menú, panel principal y formularios según `Permisos.cs` y `Sesion
 | Reporte asistencia RF-17 | ✓ | — | — | — | — |
 | Liquidar haberes (CU-08) | ✓ | — | — | — | — |
 
-**Socio** y **Visitante** no ingresan a la app de gestión (solo personal interno). Usuarios de prueba en `02_DML.sql`: `admin`, `empleado1`, `juan_prof`, `maria_nutri`, etc.
+**Socio** y **Visitante** no ingresan a la app de gestión (solo personal interno). Usuarios de prueba en `02_DML.sql`:
+
+| Usuario | Contraseña | Rol |
+|---------|------------|-----|
+| `admin` | `1234` | Administrador |
+| `empleado1` | `emp123` | Empleado |
+| `juan_prof` | `prof123` | Profesor |
+| `maria_nutri` | `nutri123` | Nutricionista |
 
 ## 6. Glosario
 
@@ -341,5 +348,57 @@ Permite:
 - facilitar configuración entre integrantes del grupo
 - recrear rápidamente la base de datos
 - mantener scripts SQL versionados dentro del proyecto
+
+---
+
+# Fase 7 — Ejecutable y entrega
+
+## Flujo de la aplicación
+
+1. **Configuración MySQL** (`FormConfiguracionConexion`) — servidor, puerto, usuario y clave.
+2. **Inicialización de BD** (`FormInicializacionBaseDatos`) — ejecuta `Database/Scripts/01` … `19` si la base no existe.
+3. **Login** (`FormLogin`) — SP `IngresoLogin`.
+4. **Panel principal** — módulos según rol.
+
+La aplicación también puede inicializar la BD automáticamente al arrancar (sin usar `init_db.bat` manualmente).
+
+## Compilar para entrega
+
+```bash
+dotnet clean -c Release && dotnet build -c Release
+```
+
+O doble clic en `build_release.bat`.
+
+## Carpeta del ejecutable (Release)
+
+Tras compilar Release, la aplicación queda en:
+
+```text
+bin/Release/net8.0-windows/
+├── ClubDeportivo.exe
+├── … (DLLs .NET)
+└── Database/Scripts/       ← 19 archivos .sql
+```
+
+Entregar o descargar **toda** esa carpeta, no solo el `.exe`.
+
+El repositorio puede incluir `bin/Release/net8.0-windows/` para que quien clone ejecute sin compilar. Tras cambios en el código, volver a compilar con `build_release.bat` y subir la carpeta actualizada.
+
+## Documentación (entrega académica)
+
+| Documento | Ubicación |
+|-----------|-----------|
+| Manual de usuario | `doc/manual_usuario.docx` / `manual_usuario.pdf` |
+| Cuadro de referencia | `doc/cuadro_referencia.docx` / `cuadro_referencia.pdf` |
+| Análisis y diagramas | `doc/definiciones_club_deportivo/` |
+
+Editar los `.docx` en Word si la cátedra pide ajustes de formato.
+
+## Requisitos en la PC destino
+
+- Windows 10+
+- [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)
+- MySQL 8.x o MariaDB 11.x en ejecución
 
 ---

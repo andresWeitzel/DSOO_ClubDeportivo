@@ -42,70 +42,38 @@ namespace TP_ClubDeportivo.Forms
             Font = UiTheme.FuenteNormal;
             BackColor = UiTheme.Fondo;
 
-            var panelBusqueda = new Panel
-            {
-                Dock = DockStyle.Top,
-                Height = 88,
-                Padding = new Padding(12, 10, 12, 8),
-                BackColor = UiTheme.Tarjeta
-            };
-            panelBusqueda.Paint += (_, e) =>
-            {
-                using var pen = new Pen(UiTheme.Borde);
-                e.Graphics.DrawLine(pen, 0, panelBusqueda.Height - 1, panelBusqueda.Width, panelBusqueda.Height - 1);
-            };
-
-            panelBusqueda.Controls.Add(new Label
-            {
-                Text = "DNI del socio:",
-                Location = new Point(12, 14),
-                AutoSize = true,
-                Font = UiTheme.FuenteNormal
-            });
-
-            txtDni = new TextBox
-            {
-                Location = new Point(110, 10),
-                Width = 160,
-                PlaceholderText = "Ej: 12345678"
-            };
+            txtDni = new TextBox { PlaceholderText = "Ej: 12345678" };
             UiTheme.AplicarCampo(txtDni);
 
-            btnBuscar = new Button
-            {
-                Text = "Buscar",
-                Location = new Point(280, 8),
-                Size = new Size(100, 32)
-            };
-            UiTheme.AplicarBotonPrimario(btnBuscar);
+            btnBuscar = new Button { Text = "Buscar" };
+            UiTheme.AjustarBotonToolbar(btnBuscar, primario: true);
             btnBuscar.Click += (_, _) => BuscarSocio();
 
-            btnLimpiar = new Button
-            {
-                Text = "Limpiar",
-                Location = new Point(390, 8),
-                Size = new Size(90, 32)
-            };
-            UiTheme.AplicarBotonSecundario(btnLimpiar);
+            btnLimpiar = new Button { Text = "Limpiar" };
+            UiTheme.AjustarBotonToolbar(btnLimpiar);
             btnLimpiar.Click += (_, _) => LimpiarBusqueda();
 
             lblSocio = new Label
             {
-                Location = new Point(12, 48),
-                Size = new Size(700, 22),
+                AutoSize = true,
                 ForeColor = UiTheme.Primario,
                 Font = new Font("Segoe UI", 10.5F, FontStyle.Bold)
             };
 
             lblDetalleCuota = new Label
             {
-                Location = new Point(12, 68),
-                Size = new Size(900, 18),
+                AutoSize = true,
+                MaximumSize = new Size(900, 0),
                 ForeColor = UiTheme.TextoSecundario,
                 Font = new Font("Segoe UI", 9F)
             };
 
-            panelBusqueda.Controls.AddRange([txtDni, btnBuscar, btnLimpiar, lblSocio, lblDetalleCuota]);
+            var panelBusqueda = UiTheme.CrearPanelBusqueda(
+                "DNI del socio:",
+                txtDni,
+                [btnBuscar, btnLimpiar],
+                lblSocio,
+                lblDetalleCuota);
 
             dgvCuotas = new DataGridView
             {
@@ -134,102 +102,129 @@ namespace TP_ClubDeportivo.Forms
             {
                 Text = "Registrar pago (CU-03)",
                 Dock = DockStyle.Bottom,
-                Height = 200,
+                Height = 220,
                 Padding = new Padding(16, 20, 16, 12),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 BackColor = UiTheme.Tarjeta
             };
 
-            const int y1 = 36;
-            const int y2 = 76;
-            const int y3 = 116;
+            var layoutPago = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 6,
+                RowCount = 3,
+                Padding = new Padding(0)
+            };
+            layoutPago.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            layoutPago.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130F));
+            layoutPago.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            layoutPago.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170F));
+            layoutPago.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            layoutPago.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            layoutPago.RowStyles.Add(new RowStyle(SizeType.Absolute, 44F));
+            layoutPago.RowStyles.Add(new RowStyle(SizeType.Absolute, 44F));
+            layoutPago.RowStyles.Add(new RowStyle(SizeType.Absolute, 44F));
 
-            panelPago.Controls.Add(new Label
+            layoutPago.Controls.Add(new Label
             {
                 Text = "Monto ($):",
-                Location = new Point(16, y1 + 4),
                 AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 10, 8, 0),
                 Font = UiTheme.FuenteNormal
-            });
+            }, 0, 0);
+
             numMonto = new NumericUpDown
             {
-                Location = new Point(100, y1),
-                Width = 120,
+                Dock = DockStyle.Fill,
                 DecimalPlaces = 2,
                 Maximum = 999999m,
                 Minimum = 0.01m,
                 Value = 150m,
-                ThousandsSeparator = true
+                ThousandsSeparator = true,
+                Margin = new Padding(0, 4, 12, 0)
             };
             numMonto.ValueChanged += (_, _) => SincronizarMontoProxima();
+            layoutPago.Controls.Add(numMonto, 1, 0);
 
-            panelPago.Controls.Add(new Label
+            layoutPago.Controls.Add(new Label
             {
                 Text = "Medio de pago:",
-                Location = new Point(240, y1 + 4),
                 AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 10, 8, 0),
                 Font = UiTheme.FuenteNormal
-            });
+            }, 2, 0);
+
             cboMedioPago = new ComboBox
             {
-                Location = new Point(350, y1),
-                Width = 160,
+                Dock = DockStyle.Fill,
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Font = UiTheme.FuenteNormal
+                Font = UiTheme.FuenteNormal,
+                Margin = new Padding(0, 4, 12, 0)
             };
             cboMedioPago.Items.AddRange(["Efectivo", "Tarjeta Débito", "Tarjeta Crédito", "Transferencia"]);
             cboMedioPago.SelectedIndex = 0;
+            layoutPago.Controls.Add(cboMedioPago, 3, 0);
 
-            btnCobrar = new Button
-            {
-                Text = "Registrar cobro",
-                Location = new Point(530, y1 - 2),
-                Size = new Size(160, 38)
-            };
-            UiTheme.AplicarBotonPrimario(btnCobrar);
+            btnCobrar = new Button { Text = "Registrar cobro" };
+            UiTheme.AjustarBotonToolbar(btnCobrar, primario: true);
+            btnCobrar.Margin = new Padding(12, 4, 0, 0);
             btnCobrar.Click += BtnCobrar_Click;
+            layoutPago.Controls.Add(btnCobrar, 5, 0);
 
-            panelPago.Controls.Add(new Label
+            layoutPago.Controls.Add(new Label
             {
                 Text = "Concepto:",
-                Location = new Point(16, y2 + 4),
                 AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 10, 8, 0),
                 Font = UiTheme.FuenteNormal
-            });
+            }, 0, 1);
+
             txtConcepto = new TextBox
             {
-                Location = new Point(100, y2),
-                Size = new Size(590, 28),
-                Text = "Cuota mensual"
+                Dock = DockStyle.Fill,
+                Text = "Cuota mensual",
+                Margin = new Padding(0, 4, 0, 0)
             };
             UiTheme.AplicarCampo(txtConcepto);
+            layoutPago.SetColumnSpan(txtConcepto, 5);
+            layoutPago.Controls.Add(txtConcepto, 1, 1);
 
             chkGenerarProxima = new CheckBox
             {
                 Text = "Generar próxima cuota (+30 días)",
-                Location = new Point(16, y3),
                 AutoSize = true,
                 Checked = true,
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 10, 0, 0),
                 Font = UiTheme.FuenteNormal
             };
+            layoutPago.SetColumnSpan(chkGenerarProxima, 2);
+            layoutPago.Controls.Add(chkGenerarProxima, 0, 2);
 
             lblMontoProxima = new Label
             {
                 Text = "Monto próxima ($):",
-                Location = new Point(280, y3 + 2),
                 AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(12, 10, 8, 0),
                 Font = UiTheme.FuenteNormal
             };
+            layoutPago.Controls.Add(lblMontoProxima, 2, 2);
+
             numMontoProxima = new NumericUpDown
             {
-                Location = new Point(410, y3 - 2),
-                Width = 120,
+                Dock = DockStyle.Fill,
                 DecimalPlaces = 2,
                 Maximum = 999999m,
                 Minimum = 0.01m,
                 Value = 150m,
-                ThousandsSeparator = true
+                ThousandsSeparator = true,
+                Margin = new Padding(0, 4, 0, 0)
             };
+            layoutPago.Controls.Add(numMontoProxima, 3, 2);
 
             chkGenerarProxima.CheckedChanged += (_, _) =>
             {
@@ -241,10 +236,7 @@ namespace TP_ClubDeportivo.Forms
                 }
             };
 
-            panelPago.Controls.AddRange([
-                numMonto, cboMedioPago, btnCobrar,
-                txtConcepto, chkGenerarProxima, lblMontoProxima, numMontoProxima
-            ]);
+            panelPago.Controls.Add(layoutPago);
 
             Controls.Add(panelGrilla);
             Controls.Add(panelPago);

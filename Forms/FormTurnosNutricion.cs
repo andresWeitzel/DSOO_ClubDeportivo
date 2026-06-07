@@ -65,33 +65,7 @@ namespace TP_ClubDeportivo.Forms
             Font = UiTheme.FuenteNormal;
             BackColor = UiTheme.Fondo;
 
-            var panelBusqueda = new Panel
-            {
-                Dock = DockStyle.Top,
-                Height = 148,
-                Padding = new Padding(16),
-                BackColor = UiTheme.Tarjeta
-            };
-            panelBusqueda.Paint += (_, e) =>
-            {
-                using var pen = new Pen(UiTheme.Borde);
-                e.Graphics.DrawLine(pen, 0, panelBusqueda.Height - 1, panelBusqueda.Width, panelBusqueda.Height - 1);
-            };
-
-            panelBusqueda.Controls.Add(new Label
-            {
-                Text = "DNI del socio:",
-                Location = new Point(16, 20),
-                AutoSize = true,
-                Font = UiTheme.FuenteNormal
-            });
-
-            txtDni = new TextBox
-            {
-                Location = new Point(110, 16),
-                Width = 180,
-                PlaceholderText = "Ej: 12345678"
-            };
+            txtDni = new TextBox { PlaceholderText = "Ej: 12345678" };
             UiTheme.AplicarCampo(txtDni);
             txtDni.KeyDown += (_, e) =>
             {
@@ -103,19 +77,13 @@ namespace TP_ClubDeportivo.Forms
                 }
             };
 
-            btnBuscarSocio = new Button
-            {
-                Text = "Buscar socio",
-                Location = new Point(300, 14),
-                Size = new Size(120, 34)
-            };
-            UiTheme.AplicarBotonPrimario(btnBuscarSocio);
+            btnBuscarSocio = new Button { Text = "Buscar socio" };
+            UiTheme.AjustarBotonToolbar(btnBuscarSocio, primario: true);
             btnBuscarSocio.Click += (_, _) => BuscarSocio();
 
             lblSocio = new Label
             {
                 Text = "Socio: -",
-                Location = new Point(16, 60),
                 AutoSize = true,
                 Font = new Font("Segoe UI", 10.5F, FontStyle.Bold),
                 ForeColor = UiTheme.Primario
@@ -124,7 +92,6 @@ namespace TP_ClubDeportivo.Forms
             lblEstadoCuota = new Label
             {
                 Text = "Estado cuota: -",
-                Location = new Point(16, 86),
                 AutoSize = true,
                 Font = UiTheme.FuenteNormal,
                 ForeColor = UiTheme.TextoSecundario
@@ -133,14 +100,20 @@ namespace TP_ClubDeportivo.Forms
             lblFichaMedica = new Label
             {
                 Text = "Ficha médica: -",
-                Location = new Point(420, 60),
                 AutoSize = true,
-                MaximumSize = new Size(700, 0),
+                MaximumSize = new Size(900, 0),
                 Font = UiTheme.FuenteNormal,
                 ForeColor = UiTheme.TextoSecundario
             };
 
-            panelBusqueda.Controls.AddRange([txtDni, btnBuscarSocio, lblSocio, lblEstadoCuota, lblFichaMedica]);
+            var panelBusqueda = UiTheme.CrearPanelBusqueda(
+                "DNI del socio:",
+                txtDni,
+                [btnBuscarSocio],
+                lblSocio,
+                lblEstadoCuota,
+                lblFichaMedica);
+            panelBusqueda.Dock = DockStyle.Top;
 
             dgvTurnosSocio = CrearGrilla();
             dgvTurnosSocio.Dock = DockStyle.Fill;
@@ -361,99 +334,123 @@ namespace TP_ClubDeportivo.Forms
             {
                 Text = "Asignar turno nutrición",
                 Dock = DockStyle.Bottom,
-                Height = 240,
-                Padding = new Padding(16),
+                Height = 260,
+                Padding = new Padding(16, 20, 16, 12),
                 Font = new Font("Segoe UI", 11F, FontStyle.Bold),
                 BackColor = UiTheme.Tarjeta
             };
 
-            panelAsignacion.Controls.Add(new Label
+            var layoutAsignacion = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 3,
+                RowCount = 5,
+                Padding = new Padding(0, 4, 0, 0)
+            };
+            layoutAsignacion.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130F));
+            layoutAsignacion.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            layoutAsignacion.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            for (var i = 0; i < 5; i++)
+            {
+                layoutAsignacion.RowStyles.Add(new RowStyle(SizeType.Absolute, i == 3 ? 28F : 44F));
+            }
+
+            layoutAsignacion.Controls.Add(new Label
             {
                 Text = "Nutricionista:",
-                Location = new Point(16, 34),
                 AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 10, 8, 0),
                 Font = UiTheme.FuenteNormal
-            });
+            }, 0, 0);
 
             cbNutricionistas = new ComboBox
             {
-                Location = new Point(130, 30),
-                Width = 340,
-                DropDownStyle = ComboBoxStyle.DropDownList
+                Dock = DockStyle.Fill,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Margin = new Padding(0, 6, 0, 0)
             };
             cbNutricionistas.SelectedIndexChanged += OnNutricionistaCambiado;
+            layoutAsignacion.SetColumnSpan(cbNutricionistas, 2);
+            layoutAsignacion.Controls.Add(cbNutricionistas, 1, 0);
 
-            panelAsignacion.Controls.Add(new Label
+            layoutAsignacion.Controls.Add(new Label
             {
                 Text = "Fecha:",
-                Location = new Point(16, 78),
                 AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 10, 8, 0),
                 Font = UiTheme.FuenteNormal
-            });
+            }, 0, 1);
 
             dtpFecha = new DateTimePicker
             {
-                Location = new Point(130, 74),
-                Width = 180,
+                Dock = DockStyle.Fill,
                 Format = DateTimePickerFormat.Short,
-                MinDate = DateTime.Today
+                MinDate = DateTime.Today,
+                Margin = new Padding(0, 6, 0, 0)
             };
             dtpFecha.ValueChanged += OnFechaCambiada;
+            layoutAsignacion.SetColumnSpan(dtpFecha, 2);
+            layoutAsignacion.Controls.Add(dtpFecha, 1, 1);
 
-            panelAsignacion.Controls.Add(new Label
+            layoutAsignacion.Controls.Add(new Label
             {
                 Text = "Hora disponible:",
-                Location = new Point(16, 122),
                 AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 10, 8, 0),
                 Font = UiTheme.FuenteNormal
-            });
+            }, 0, 2);
 
             cbHorasDisponibles = new ComboBox
             {
-                Location = new Point(130, 118),
-                Width = 180,
-                DropDownStyle = ComboBoxStyle.DropDownList
+                Dock = DockStyle.Fill,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Margin = new Padding(0, 6, 8, 0),
+                MinimumSize = new Size(140, 0)
             };
             cbHorasDisponibles.SelectedIndexChanged += (_, _) => ActualizarEstadoFormulario();
+            layoutAsignacion.Controls.Add(cbHorasDisponibles, 1, 2);
+
+            btnBuscarSiguienteSemana = new Button { Text = "Buscar próxima fecha" };
+            UiTheme.AjustarBotonToolbar(btnBuscarSiguienteSemana);
+            btnBuscarSiguienteSemana.Margin = new Padding(0, 6, 0, 0);
+            btnBuscarSiguienteSemana.Click += (_, _) => BuscarProximaFechaDisponible();
+            layoutAsignacion.Controls.Add(btnBuscarSiguienteSemana, 2, 2);
 
             lblFechaDisponibles = new Label
             {
                 Text = "Turnos disponibles para: -",
-                Location = new Point(130, 146),
                 AutoSize = true,
+                Anchor = AnchorStyles.Left,
                 Font = UiTheme.FuenteNormal,
-                ForeColor = UiTheme.TextoSecundario
+                ForeColor = UiTheme.TextoSecundario,
+                Margin = new Padding(0, 4, 0, 0)
             };
+            layoutAsignacion.SetColumnSpan(lblFechaDisponibles, 3);
+            layoutAsignacion.Controls.Add(lblFechaDisponibles, 0, 3);
 
-            btnBuscarSiguienteSemana = new Button
-            {
-                Text = "Buscar próxima fecha",
-                Location = new Point(330, 110),
-                Size = new Size(180, 34)
-            };
-            UiTheme.AplicarBotonSecundario(btnBuscarSiguienteSemana);
-            btnBuscarSiguienteSemana.Click += (_, _) => BuscarProximaFechaDisponible();
-
-            btnAsignarTurno = new Button
-            {
-                Text = "Asignar turno",
-                Size = new Size(180, 40),
-                Location = new Point(16, 168),
-                Anchor = AnchorStyles.Left | AnchorStyles.Bottom
-            };
-            UiTheme.AplicarBotonPrimario(btnAsignarTurno);
+            btnAsignarTurno = new Button { Text = "Asignar turno" };
+            UiTheme.AjustarBotonToolbar(btnAsignarTurno, primario: true);
+            btnAsignarTurno.Margin = new Padding(0, 6, 0, 0);
             btnAsignarTurno.Click += (_, _) => AsignarTurno();
+            layoutAsignacion.Controls.Add(btnAsignarTurno, 0, 4);
+            layoutAsignacion.SetColumnSpan(btnAsignarTurno, 1);
 
             lblMensaje = new Label
             {
                 Text = "Busque un socio y seleccione un turno disponible.",
-                Location = new Point(220, 176),
                 AutoSize = true,
+                Anchor = AnchorStyles.Left,
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                ForeColor = UiTheme.TextoSecundario
+                ForeColor = UiTheme.TextoSecundario,
+                Margin = new Padding(12, 12, 0, 0)
             };
+            layoutAsignacion.SetColumnSpan(lblMensaje, 2);
+            layoutAsignacion.Controls.Add(lblMensaje, 1, 4);
 
-            panelAsignacion.Controls.AddRange([cbNutricionistas, dtpFecha, cbHorasDisponibles, lblFechaDisponibles, btnBuscarSiguienteSemana, btnAsignarTurno, lblMensaje]);
+            panelAsignacion.Controls.Add(layoutAsignacion);
 
             var panelSuperior = new Panel
             {

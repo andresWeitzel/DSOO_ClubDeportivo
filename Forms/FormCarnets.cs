@@ -30,124 +30,115 @@ namespace TP_ClubDeportivo.Forms
         {
             Text = "Gestión de carnets (CU-04)";
             StartPosition = FormStartPosition.CenterParent;
-            Size = new Size(520, 420);
-            MinimumSize = new Size(480, 400);
+            Size = new Size(560, 480);
+            MinimumSize = new Size(520, 440);
             Font = UiTheme.FuenteNormal;
             BackColor = UiTheme.Fondo;
-            FormBorderStyle = FormBorderStyle.FixedDialog;
-            MaximizeBox = false;
+            FormBorderStyle = FormBorderStyle.Sizable;
+            MaximizeBox = true;
 
-            var panelBusqueda = new Panel
-            {
-                Dock = DockStyle.Top,
-                Height = 88,
-                Padding = new Padding(12, 10, 12, 8),
-                BackColor = UiTheme.Tarjeta
-            };
-
-            panelBusqueda.Controls.Add(new Label
-            {
-                Text = "DNI del socio:",
-                Location = new Point(12, 14),
-                AutoSize = true
-            });
-
-            txtDni = new TextBox
-            {
-                Location = new Point(110, 10),
-                Width = 160,
-                PlaceholderText = "Ej: 12345678"
-            };
+            txtDni = new TextBox { PlaceholderText = "Ej: 12345678" };
             UiTheme.AplicarCampo(txtDni);
 
-            btnBuscar = new Button
-            {
-                Text = "Buscar",
-                Location = new Point(280, 8),
-                Size = new Size(90, 32)
-            };
-            UiTheme.AplicarBotonPrimario(btnBuscar);
+            btnBuscar = new Button { Text = "Buscar" };
+            UiTheme.AjustarBotonToolbar(btnBuscar, primario: true);
             btnBuscar.Click += (_, _) => BuscarSocio();
 
-            btnLimpiar = new Button
-            {
-                Text = "Limpiar",
-                Location = new Point(378, 8),
-                Size = new Size(80, 32)
-            };
-            UiTheme.AplicarBotonSecundario(btnLimpiar);
+            btnLimpiar = new Button { Text = "Limpiar" };
+            UiTheme.AjustarBotonToolbar(btnLimpiar);
             btnLimpiar.Click += (_, _) => Limpiar();
 
             lblSocio = new Label
             {
-                Location = new Point(12, 52),
-                Size = new Size(440, 22),
+                AutoSize = true,
                 Font = new Font("Segoe UI", 10.5F, FontStyle.Bold),
                 ForeColor = UiTheme.Primario
             };
 
-            panelBusqueda.Controls.AddRange([txtDni, btnBuscar, btnLimpiar, lblSocio]);
+            var panelBusqueda = UiTheme.CrearPanelBusqueda(
+                "DNI del socio:",
+                txtDni,
+                [btnBuscar, btnLimpiar],
+                lblSocio);
 
             var grpCarnet = new GroupBox
             {
                 Text = "Datos del carnet",
-                Location = new Point(12, 100),
-                Size = new Size(476, 200),
-                Font = new Font("Segoe UI", 10F, FontStyle.Bold)
+                Dock = DockStyle.Fill,
+                Padding = new Padding(16, 20, 16, 12),
+                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                Margin = new Padding(12, 8, 12, 8)
             };
 
             lblEstado = new Label
             {
-                Location = new Point(16, 32),
-                Size = new Size(440, 28),
+                Dock = DockStyle.Top,
+                Height = 32,
                 Font = new Font("Segoe UI", 11F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
             };
 
-            grpCarnet.Controls.Add(new Label { Text = "Número:", Location = new Point(16, 72), AutoSize = true });
-            txtNumero = CrearCampoSoloLectura(110, 68, 340);
-            grpCarnet.Controls.Add(txtNumero);
+            var layoutCarnet = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 3,
+                Padding = new Padding(0, 8, 0, 0)
+            };
+            layoutCarnet.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            layoutCarnet.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            for (var i = 0; i < 3; i++)
+            {
+                layoutCarnet.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
+            }
 
-            grpCarnet.Controls.Add(new Label { Text = "Emisión:", Location = new Point(16, 108), AutoSize = true });
-            txtEmision = CrearCampoSoloLectura(110, 104, 160);
-            grpCarnet.Controls.Add(txtEmision);
+            layoutCarnet.Controls.Add(new Label { Text = "Número:", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, 10, 8, 0) }, 0, 0);
+            txtNumero = CrearCampoSoloLectura();
+            layoutCarnet.Controls.Add(txtNumero, 1, 0);
 
-            grpCarnet.Controls.Add(new Label { Text = "Vencimiento:", Location = new Point(16, 144), AutoSize = true });
-            txtVencimiento = CrearCampoSoloLectura(110, 140, 160);
-            grpCarnet.Controls.Add(txtVencimiento);
+            layoutCarnet.Controls.Add(new Label { Text = "Emisión:", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, 10, 8, 0) }, 0, 1);
+            txtEmision = CrearCampoSoloLectura();
+            layoutCarnet.Controls.Add(txtEmision, 1, 1);
 
+            layoutCarnet.Controls.Add(new Label { Text = "Vencimiento:", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, 10, 8, 0) }, 0, 2);
+            txtVencimiento = CrearCampoSoloLectura();
+            layoutCarnet.Controls.Add(txtVencimiento, 1, 2);
+
+            grpCarnet.Controls.Add(layoutCarnet);
             grpCarnet.Controls.Add(lblEstado);
 
-            btnRenovar = new Button
-            {
-                Text = "Renovar (+1 año)",
-                Location = new Point(12, 312),
-                Size = new Size(150, 38),
-                Enabled = false
-            };
+            btnRenovar = new Button { Text = "Renovar (+1 año)", Enabled = false };
             UiTheme.AplicarBotonPrimario(btnRenovar);
             btnRenovar.Click += BtnRenovar_Click;
 
-            btnEmitir = new Button
-            {
-                Text = "Emitir carnet",
-                Location = new Point(172, 312),
-                Size = new Size(130, 38),
-                Enabled = false,
-                Visible = false
-            };
+            btnEmitir = new Button { Text = "Emitir carnet", Enabled = false, Visible = false };
             UiTheme.AplicarBotonSecundario(btnEmitir);
             btnEmitir.Click += BtnEmitir_Click;
 
+            var panelBotones = UiTheme.CrearBarraBotones(btnRenovar, btnEmitir);
+            panelBotones.Dock = DockStyle.Bottom;
+            panelBotones.Padding = new Padding(12, 8, 12, 12);
+
             lblMensaje = new Label
             {
-                Location = new Point(12, 358),
-                Size = new Size(476, 40),
+                Dock = DockStyle.Bottom,
+                Height = 44,
                 ForeColor = UiTheme.TextoSecundario,
-                Font = new Font("Segoe UI", 9F)
+                Font = new Font("Segoe UI", 9F),
+                Padding = new Padding(12, 0, 12, 8)
             };
 
-            Controls.AddRange([grpCarnet, btnRenovar, btnEmitir, lblMensaje, panelBusqueda]);
+            var panelContenido = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(12, 0, 12, 0)
+            };
+            panelContenido.Controls.Add(grpCarnet);
+
+            Controls.Add(panelContenido);
+            Controls.Add(lblMensaje);
+            Controls.Add(panelBotones);
+            Controls.Add(panelBusqueda);
 
             AcceptButton = btnBuscar;
             txtDni.KeyDown += (_, e) =>
@@ -162,14 +153,14 @@ namespace TP_ClubDeportivo.Forms
             LimpiarCamposCarnet();
         }
 
-        private static TextBox CrearCampoSoloLectura(int x, int y, int ancho)
+        private static TextBox CrearCampoSoloLectura()
         {
             var txt = new TextBox
             {
-                Location = new Point(x, y),
-                Size = new Size(ancho, 25),
+                Dock = DockStyle.Fill,
                 ReadOnly = true,
-                BackColor = UiTheme.PrimarioClaro
+                BackColor = UiTheme.PrimarioClaro,
+                Margin = new Padding(0, 4, 0, 0)
             };
             UiTheme.AplicarCampo(txt);
             return txt;

@@ -36,56 +36,86 @@ namespace TP_ClubDeportivo.Forms
             var panelSuperior = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 160,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 BackColor = UiTheme.Tarjeta,
                 Padding = new Padding(24)
             };
 
-            var lblTitulo = new Label
+            var layoutSuperior = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                ColumnCount = 1
+            };
+            layoutSuperior.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
+            layoutSuperior.Controls.Add(new Label
             {
                 Text = "Firmar asistencia de profesor",
                 Font = new Font("Segoe UI", 18F, FontStyle.Bold),
                 ForeColor = UiTheme.Texto,
                 AutoSize = true,
-                Location = new Point(0, 0)
-            };
+                Margin = new Padding(0, 0, 0, 6)
+            }, 0, 0);
+            layoutSuperior.RowCount = 1;
+            layoutSuperior.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-            var lblDescripcion = new Label
+            layoutSuperior.RowCount = 2;
+            layoutSuperior.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layoutSuperior.Controls.Add(new Label
             {
                 Text = "Seleccione un profesor y una fecha. Luego registre o actualice la firma de su asistencia.",
                 Font = UiTheme.FuenteSubtitulo,
                 ForeColor = UiTheme.TextoSecundario,
                 AutoSize = true,
-                Location = new Point(0, 38)
+                MaximumSize = new Size(900, 0),
+                Margin = new Padding(0, 0, 0, 12)
+            }, 0, 1);
+
+            var filaFiltros = new TableLayoutPanel
+            {
+                ColumnCount = 3,
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Margin = new Padding(0)
             };
+            filaFiltros.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            filaFiltros.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            filaFiltros.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            filaFiltros.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
 
             cbProfesores = new ComboBox
             {
+                Dock = DockStyle.Fill,
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Width = 340,
-                Location = new Point(0, 84)
+                Margin = new Padding(0, 0, 12, 0)
             };
 
             dtpFecha = new DateTimePicker
             {
                 Format = DateTimePickerFormat.Short,
-                Width = 140,
-                Location = new Point(360, 84),
+                Width = 150,
                 Value = DateTime.Today,
-                MaxDate = DateTime.Today
+                MaxDate = DateTime.Today,
+                Margin = new Padding(0, 0, 12, 0)
             };
             dtpFecha.ValueChanged += (_, _) => CargarAsistencias();
 
-            btnBuscar = new Button
-            {
-                Text = "Buscar asistencia",
-                AutoSize = true,
-                Location = new Point(524, 80)
-            };
-            UiTheme.AplicarBotonPrimario(btnBuscar);
+            btnBuscar = new Button { Text = "Buscar asistencia" };
+            UiTheme.AjustarBotonToolbar(btnBuscar, primario: true);
             btnBuscar.Click += (_, _) => CargarAsistencias();
 
-            panelSuperior.Controls.AddRange([lblTitulo, lblDescripcion, cbProfesores, dtpFecha, btnBuscar]);
+            filaFiltros.Controls.Add(cbProfesores, 0, 0);
+            filaFiltros.Controls.Add(dtpFecha, 1, 0);
+            filaFiltros.Controls.Add(btnBuscar, 2, 0);
+
+            layoutSuperior.RowCount = 3;
+            layoutSuperior.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layoutSuperior.Controls.Add(filaFiltros, 0, 2);
+            panelSuperior.Controls.Add(layoutSuperior);
 
             dgvAsistencias = CrearGrilla();
             dgvAsistencias.SelectionChanged += (_, _) => ActualizarFormularioDesdeSeleccion();
@@ -101,56 +131,83 @@ namespace TP_ClubDeportivo.Forms
             var panelAccion = new Panel
             {
                 Dock = DockStyle.Bottom,
-                Height = 150,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 BackColor = UiTheme.Tarjeta,
                 Padding = new Padding(24)
             };
 
-            var lblFirma = new Label
+            var layoutAccion = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                ColumnCount = 1
+            };
+            layoutAccion.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
+            layoutAccion.Controls.Add(new Label
             {
                 Text = "Firma:",
                 AutoSize = true,
-                Location = new Point(0, 18),
                 Font = UiTheme.FuenteNormal,
-                ForeColor = UiTheme.Texto
-            };
+                ForeColor = UiTheme.Texto,
+                Margin = new Padding(0, 0, 0, 6)
+            }, 0, 0);
+            layoutAccion.RowCount = 1;
+            layoutAccion.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-            txtFirma = new TextBox
-            {
-                Width = 520,
-                Location = new Point(0, 42)
-            };
+            txtFirma = new TextBox { Dock = DockStyle.Top, Height = 32, Margin = new Padding(0, 0, 0, 10) };
             UiTheme.AplicarCampo(txtFirma);
             txtFirma.TextChanged += (_, _) => ActualizarBotonFirmar();
+            layoutAccion.RowCount = 2;
+            layoutAccion.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layoutAccion.Controls.Add(txtFirma, 0, 1);
 
             chkPresente = new CheckBox
             {
                 Text = "Presente",
                 AutoSize = true,
-                Location = new Point(0, 84),
                 Checked = true,
-                ForeColor = UiTheme.Texto
+                ForeColor = UiTheme.Texto,
+                Margin = new Padding(0, 0, 0, 10)
             };
+            layoutAccion.RowCount = 3;
+            layoutAccion.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layoutAccion.Controls.Add(chkPresente, 0, 2);
 
-            btnFirmar = new Button
+            var filaBotones = new TableLayoutPanel
             {
-                Text = "Registrar / firmar",
-                Size = new Size(180, 38),
-                Location = new Point(0, 110)
+                ColumnCount = 2,
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink
             };
-            UiTheme.AplicarBotonPrimario(btnFirmar);
+            filaBotones.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            filaBotones.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            filaBotones.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+            btnFirmar = new Button { Text = "Registrar / firmar" };
+            UiTheme.AjustarBotonToolbar(btnFirmar, primario: true);
             btnFirmar.Click += (_, _) => GuardarFirma();
 
             lblMensaje = new Label
             {
                 Text = string.Empty,
                 AutoSize = true,
-                Location = new Point(220, 118),
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(12, 10, 0, 0),
                 ForeColor = UiTheme.TextoSecundario,
                 Font = new Font("Segoe UI", 9F)
             };
 
-            panelAccion.Controls.AddRange([lblFirma, txtFirma, chkPresente, btnFirmar, lblMensaje]);
+            filaBotones.Controls.Add(btnFirmar, 0, 0);
+            filaBotones.Controls.Add(lblMensaje, 1, 0);
+            layoutAccion.RowCount = 4;
+            layoutAccion.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layoutAccion.Controls.Add(filaBotones, 0, 3);
+
+            panelAccion.Controls.Add(layoutAccion);
 
             Controls.Add(panelContenido);
             Controls.Add(panelAccion);
