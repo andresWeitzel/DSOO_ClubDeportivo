@@ -121,26 +121,42 @@ La UI filtra menú, panel principal y formularios según `Permisos.cs` y `Sesion
 
 # Ejecutable y entrega
 
-## Flujo de la aplicación
+Guía resumida. El detalle completo (módulos, solución de problemas, etc.) está en [`doc/manual_usuario.pdf`](doc/manual_usuario.pdf).
 
-1. **Configuración MySQL** (`FormConfiguracionConexion`) — servidor, puerto, usuario y clave.
-2. **Inicialización de BD** (`FormInicializacionBaseDatos`) — ejecuta `Database/Scripts/01` … `19` si la base no existe.
-3. **Login** (`FormLogin`) — SP `IngresoLogin`.
-4. **Panel principal** — módulos según rol.
+## Requisitos en la PC destino
 
-La aplicación también puede inicializar la BD automáticamente al arrancar (sin usar `init_db.bat` manualmente).
+Para **usar** la aplicación no hace falta Visual Studio, DBeaver ni ningún IDE.
 
-## Compilar para entrega
+| Requisito | Detalle |
+|-----------|---------|
+| Sistema operativo | Windows 10 o superior (64 bits) |
+| Runtime | [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) |
+| Motor SQL | MySQL 8.x o MariaDB 11.x **en ejecución** |
+| Red | Acceso al servidor MySQL/MariaDB (`localhost:3306` en instalación local) |
+
+Instalación rápida del runtime (terminal):
 
 ```bash
-dotnet clean -c Release && dotnet build -c Release
+winget install Microsoft.DotNet.DesktopRuntime.8
+dotnet --list-runtimes
 ```
 
-O doble clic en `build_release.bat`.
+Debe aparecer `Microsoft.WindowsDesktop.App 8.0.x`.
 
-## Carpeta del ejecutable (Release)
+MySQL/MariaDB: el servicio debe estar activo. Opcionalmente agregar al PATH la carpeta `bin` del motor (ej. `C:\Program Files\MariaDB 11.6\bin`) y verificar con `mysql --version`.
 
-Tras compilar Release, la aplicación queda en:
+La base **`db_club_deportivo`** no se crea a mano: la aplicación la inicializa sola la primera vez, si el usuario MySQL tiene permisos para crear bases y procedimientos almacenados.
+
+### Solo para compilar desde el código fuente
+
+```bash
+winget install Microsoft.DotNet.SDK.8
+dotnet --list-sdks
+```
+
+## Cómo se obtiene y ejecuta el sistema
+
+El ejecutable está en:
 
 ```text
 bin/Release/net8.0-windows/
@@ -149,9 +165,54 @@ bin/Release/net8.0-windows/
 └── Database/Scripts/       ← 19 archivos .sql
 ```
 
-Entregar o descargar **toda** esa carpeta, no solo el `.exe`.
+**Pasos:**
 
-El repositorio puede incluir `bin/Release/net8.0-windows/` para que quien clone ejecute sin compilar. Tras cambios en el código, volver a compilar con `build_release.bat` y subir la carpeta actualizada.
+1. Copiar o descomprimir **toda** la carpeta `bin/Release/net8.0-windows/` (no solo el `.exe`).
+2. Ejecutar `ClubDeportivo.exe`.
+3. Verificar que exista `Database/Scripts/` junto al ejecutable.
+
+El repositorio puede incluir esa carpeta para ejecutar sin compilar. Tras cambios en el código, recompilar y actualizar.
+
+## Compilar para entrega
+
+Doble clic en `build_release.bat`, o desde la raíz del proyecto:
+
+```bash
+dotnet clean -c Release
+dotnet build -c Release
+```
+
+La salida queda en `bin/Release/net8.0-windows/`.
+
+## Primera ejecución
+
+### 1. Datos de instalación MySQL
+
+Al abrir la app por primera vez (`FormConfiguracionConexion`):
+
+| Campo | Valor habitual |
+|-------|----------------|
+| Servidor | `localhost` |
+| Puerto | `3306` |
+| Usuario | `root` (o usuario con permisos DDL/DML) |
+| Contraseña | La de su instalación MySQL/MariaDB |
+| Base de datos | `db_club_deportivo` (nombre fijo) |
+
+Usar **Restablecer valores** si hace falta. Pulsar **Continuar al login**.
+
+### 2. Inicialización automática de la base de datos
+
+Si la base no existe o no está lista, la app ejecuta en orden `01_DDL.sql` … `19_sp_liquidaciones.sql` (`FormInicializacionBaseDatos`) y muestra el progreso en pantalla.
+
+### 3. Inicio de sesión
+
+Pantalla **Iniciar sesión** (`FormLogin`): usuario y contraseña; **Ver** (mostrar clave), **Recordar usuario**, **Ingresar** (SP `IngresoLogin`), **Probar conexión**, **Cambiar MySQL**.
+
+Usuarios de prueba (`02_DML.sql`): `admin` / `1234`, `empleado1` / `emp123`, `juan_prof` / `prof123`, `maria_nutri` / `nutri123`.
+
+### 4. Panel principal
+
+Módulos según rol (`Permisos.cs`). Ver tabla de acceso en la sección 5 de este README.
 
 ## Documentación (entrega académica)
 
@@ -161,12 +222,6 @@ El repositorio puede incluir `bin/Release/net8.0-windows/` para que quien clone 
 | Cuadro de referencia | `doc/cuadro_referencia.docx` / `cuadro_referencia.pdf` |
 | Análisis y diagramas | `doc/definiciones_club_deportivo/` |
 
-Editar los `.docx` en Word si la cátedra pide ajustes de formato.
-
-## Requisitos en la PC destino
-
-- Windows 10+
-- [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)
-- MySQL 8.x o MariaDB 11.x en ejecución
+Fuente del manual: `doc/manual_usuario.md`. Regenerar Word/PDF: `py doc/generar_documentacion.py`.
 
 ---
